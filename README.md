@@ -35,7 +35,7 @@
 ## 📂 System Topology
 
 ```
-DF_satelite/
+DF_satellite/
 ├── Database/
 │   ├── data/                 # Isolated runtime SQLite database (Git ignored)
 │   │   └── satellite.db

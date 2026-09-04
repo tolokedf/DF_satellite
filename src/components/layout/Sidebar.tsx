@@ -13,12 +13,14 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CheckSquare,
   FolderKanban,
   X,
   Building2,
   Layers
 } from "lucide-react";
+import { useSite } from "@/context/SiteContext";
 
 interface SidebarProps {
   user: any;
@@ -30,6 +32,19 @@ export default function Sidebar({ user }: SidebarProps) {
   const router = useRouter();
 
   const [collapsed, setCollapsed] = useState(false);
+
+  // Site & Customer Filter State
+  const {
+    currentCustomerId,
+    setCurrentCustomerId,
+    currentSiteId,
+    setCurrentSiteId,
+    availableCompanies,
+    filteredSitesForCustomer,
+    currentCustomerName,
+    currentSiteName,
+    isCustomer,
+  } = useSite();
 
   // Project Sidebar State
   const [projects, setProjects] = useState<any[]>([]);
@@ -407,79 +422,129 @@ export default function Sidebar({ user }: SidebarProps) {
   return (
     <>
       {/* Mobile Sub-Navigation Pill Bar for Issue List (< md) */}
-      <div className="md:hidden w-full bg-white border-b border-slate-200 px-2.5 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.03)] shrink-0 select-none">
-        <Link
-          href="/form"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/form") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <Plus className="w-3 h-3" />
-          <span>Log Stop</span>
-        </Link>
-        <Link
-          href="/feed"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/feed") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <List className="w-3 h-3" />
-          <span>Feed</span>
-        </Link>
-        <Link
-          href="/focus"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/focus") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <Target className="w-3 h-3" />
-          <span>Focus Board</span>
-        </Link>
-        <Link
-          href="/analytics"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/analytics") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <BarChart2 className="w-3 h-3" />
-          <span>Analytics</span>
-        </Link>
-        <Link
-          href="/qr"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/qr") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <QrCode className="w-3 h-3" />
-          <span>QR Codes</span>
-        </Link>
-        <Link
-          href="/portal/log-issue"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/portal/log-issue") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <Plus className="w-3 h-3" />
-          <span>Log Issue</span>
-        </Link>
-        <Link
-          href="/portal/issues"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/portal/issues") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <AlertTriangle className="w-3 h-3" />
-          <span>Issues</span>
-        </Link>
-        <Link
-          href="/settings"
-          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-            isActive("/settings") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-        >
-          <Settings className="w-3 h-3" />
-          <span>Settings</span>
-        </Link>
+      <div className="md:hidden w-full bg-white border-b border-slate-200 p-2 space-y-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)] shrink-0 select-none">
+        {/* Customer & Site Filters */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="flex items-center text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+              <Building2 className="w-2.5 h-2.5 mr-0.5 text-slate-400" />
+              <span>Customer</span>
+            </label>
+            <div className="relative">
+              <select
+                value={currentCustomerId}
+                onChange={(e) => setCurrentCustomerId(e.target.value)}
+                className="w-full appearance-none bg-slate-50 text-slate-800 text-xs font-semibold py-1 pl-2 pr-5 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer truncate"
+              >
+                <option value="ALL">All Customers</option>
+                {availableCompanies.map((comp) => (
+                  <option key={comp.id} value={comp.id}>
+                    {comp.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-2 pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label className="flex items-center text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+              <Layers className="w-2.5 h-2.5 mr-0.5 text-slate-400" />
+              <span>Site</span>
+            </label>
+            <div className="relative">
+              <select
+                value={currentSiteId}
+                onChange={(e) => setCurrentSiteId(e.target.value)}
+                className="w-full appearance-none bg-slate-50 text-slate-800 text-xs font-semibold py-1 pl-2 pr-5 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer truncate"
+              >
+                <option value="ALL">All Sites</option>
+                {filteredSitesForCustomer.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-2 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* Sub-navigation Links */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap pt-1 border-t border-slate-100">
+          <Link
+            href="/form"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/form") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <Plus className="w-3 h-3" />
+            <span>Log Stop</span>
+          </Link>
+          <Link
+            href="/feed"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/feed") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <List className="w-3 h-3" />
+            <span>Feed</span>
+          </Link>
+          <Link
+            href="/focus"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/focus") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <Target className="w-3 h-3" />
+            <span>Focus Board</span>
+          </Link>
+          <Link
+            href="/analytics"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/analytics") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <BarChart2 className="w-3 h-3" />
+            <span>Analytics</span>
+          </Link>
+          <Link
+            href="/qr"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/qr") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <QrCode className="w-3 h-3" />
+            <span>QR Codes</span>
+          </Link>
+          <Link
+            href="/portal/log-issue"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/portal/log-issue") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <Plus className="w-3 h-3" />
+            <span>Log Issue</span>
+          </Link>
+          <Link
+            href="/portal/issues"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/portal/issues") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <AlertTriangle className="w-3 h-3" />
+            <span>Issues</span>
+          </Link>
+          <Link
+            href="/settings"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/settings") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <Settings className="w-3 h-3" />
+            <span>Settings</span>
+          </Link>
+        </div>
       </div>
 
       {/* Desktop Left Sidebar (md and up) */}
@@ -489,6 +554,65 @@ export default function Sidebar({ user }: SidebarProps) {
         } bg-white border-r border-slate-200 flex-col justify-between shrink-0 min-h-[calc(100vh-3.5rem)] select-none transition-all duration-200`}
       >
         <div className="p-3 space-y-6">
+          {/* Customer & Site Cascading Filter in Left Sidebar */}
+          {!collapsed ? (
+            <div className="pb-4 border-b border-slate-100 space-y-3">
+              <div>
+                <label className="flex items-center text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  <Building2 className="w-3 h-3 mr-1 text-slate-400" />
+                  <span>Customer</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={currentCustomerId}
+                    onChange={(e) => setCurrentCustomerId(e.target.value)}
+                    className="w-full appearance-none bg-slate-50 hover:bg-slate-100/80 text-slate-800 text-xs font-semibold py-1.5 pl-2 pr-6 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition truncate"
+                  >
+                    <option value="ALL">All Customers</option>
+                    {availableCompanies.map((comp) => (
+                      <option key={comp.id} value={comp.id}>
+                        {comp.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  <Layers className="w-3 h-3 mr-1 text-slate-400" />
+                  <span>Site</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={currentSiteId}
+                    onChange={(e) => setCurrentSiteId(e.target.value)}
+                    className="w-full appearance-none bg-slate-50 hover:bg-slate-100/80 text-slate-800 text-xs font-semibold py-1.5 pl-2 pr-6 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition truncate"
+                  >
+                    <option value="ALL">All Sites</option>
+                    {filteredSitesForCustomer.map((site) => (
+                      <option key={site.id} value={site.id}>
+                        {site.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center pb-3 border-b border-slate-100">
+              <button
+                onClick={() => setCollapsed(false)}
+                className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200"
+                title={`Customer: ${currentCustomerName}\nSite: ${currentSiteName} (Click to expand)`}
+              >
+                <Building2 className="w-4 h-4 text-blue-600" />
+              </button>
+            </div>
+          )}
+
           {/* SHORT STOPS Group */}
           <div>
             {!collapsed && (

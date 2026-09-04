@@ -4,19 +4,29 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, Plus, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
+import { useSite } from "@/context/SiteContext";
 
 export default function CustomerIssuesPage() {
+  const { currentSiteId, currentCustomerId } = useSite();
   const [issues, setIssues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/issues")
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (currentSiteId && currentSiteId !== "ALL") {
+      params.append("siteId", currentSiteId);
+    } else if (currentCustomerId && currentCustomerId !== "ALL") {
+      params.append("companyId", currentCustomerId);
+    }
+    const query = params.toString() ? `?${params.toString()}` : "";
+    fetch(`/api/issues${query}`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setIssues(data);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentSiteId, currentCustomerId]);
 
   return (
     <div className="space-y-6">

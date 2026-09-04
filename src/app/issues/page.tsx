@@ -3,17 +3,26 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { useSite } from "@/context/SiteContext";
 
 export default function GlobalIssuesPage() {
+  const { currentSiteId, currentCustomerId } = useSite();
   const [issues, setIssues] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/issues")
+    const params = new URLSearchParams();
+    if (currentSiteId && currentSiteId !== "ALL") {
+      params.append("siteId", currentSiteId);
+    } else if (currentCustomerId && currentCustomerId !== "ALL") {
+      params.append("companyId", currentCustomerId);
+    }
+    const query = params.toString() ? `?${params.toString()}` : "";
+    fetch(`/api/issues${query}`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setIssues(data);
       });
-  }, []);
+  }, [currentSiteId, currentCustomerId]);
 
   return (
     <div className="space-y-6">

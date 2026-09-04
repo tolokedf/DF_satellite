@@ -30,6 +30,12 @@
 ### 🌐 Automatic Site Scoping for Engineers
 - When provisioning an **`Engineer`** account in the Admin Console, the **Authorized Sites** container is automatically greyed out and all site checkboxes are disabled. Engineers automatically have global, unrestricted access across all customer sites in the fleet.
 
+### 📅 Universal Date Format Directive (day/month/years)
+> **For now and further throughout the whole project, the date system is in day/month/years: `d/M/yyyy` (e.g. 4 July 2026 is `4/7/2026`).**
+- **Strict Format Requirement:** All dates displayed across all modules, tables, cards, Gantt charts, tooltips, modals, exported reports, and logs must strictly follow the `day/month/years` convention (`d/M/yyyy`, e.g. `4/7/2026`).
+- **Timestamps:** When time is included, the format is `d/M/yyyy HH:mm` (e.g. `4/7/2026 14:30`).
+- **Form Inputs:** While standard HTML `<input type="date">` internally accepts `yyyy-MM-dd` as its data value, all displayed date labels, text, and readouts across the entire application must strictly present dates as `d/M/yyyy`.
+
 ---
 
 ## 🎨 2. App Branding, Visual Identity & Navigation
@@ -41,35 +47,40 @@
   - **Favicon & App Icon:** Generated from official company logo mark (`src/app/icon.png`, `public/favicon.ico`).
 - **App Title:** `DF satellite`
 - **Navbar Top Compartment (Level 1 - High Level Navigation):**
-  - **Left:** Official DF Automation logo mark + "DF Automation and robotics" label + "DF satellite" title + dynamic Site Filter dropdown (beside the logo).
-    - **Search Bar:** Completely removed from top bar.
-    - **Top Bar Sections (Consistent Dimensions: `h-8 px-3 rounded-lg text-xs font-semibold`):**
-      - **`issue list`** button (all roles, links to `/feed`): Activates the operational issue feed and reveals the 2nd-level issue list left sidebar.
-      - **`task Overview`** button (Engineer & Admin, links to `/task-overview`): High-level consolidated task dashboard; **hides the left sidebar**.
-      - **`project`** button (Engineer & Admin, links to `/project`): Project workspace; **reveals the Project left sidebar**.
-      - **`Administration`** button (Admin only, links to `/admin`): Super Admin Console; **hides the left sidebar**.
-      - User avatar & username badge + **Sign Out** button.
-      - *Switch Persona feature is completely disabled.*
-  - **Left Sidebar (Level 2 - Sub-Module Navigation):**
-    - **Contextual Visibility:**
-      - When in **`issue list`**: Shows the Issue List sidebar (`Log Stop`, `Feed`, `Focus Board`, `Analytics`, `QR Codes`, `Log Issue`, `Issues`, `Settings`).
-      - When in **`project`**: Shows the Project left sidebar with 2 sections: **"My Task"** and **"Work"** (`+ Add Project` button and all created projects).
-      - When clicking **`task Overview`** or **`Administration`**, the left sidebar is **strictly hidden**, giving full-width real estate to the dashboards.
-  - **📱 Mobile Phone & Laptop Responsive Architecture:**
-    - **Phone Mode (`< md` screens):**
-      - **Header & Branding:** Compact DF icon mark + "DF satellite" + truncated Site selector to prevent horizontal overflow on small mobile screens.
-      - **Mobile Navigation Drawer:** Tapping the hamburger button (`Menu`) slides out a navigation drawer with user role badge, Level 1 sections (`issue list`, `task Overview`, `project`, `Administration`), and Sign Out.
-      - **1-Tap Quick-Pill Bar:** Positioned directly under the header on phones, providing instant 1-tap horizontal scrolling access to all Level 1 sections (`issue list`, `task Overview`, `project`, `Administration`).
-      - **Mobile Sub-Navigation Bar:** Smooth horizontal pill bar for sub-navigation in both `issue list` and `project` (`[My Task] [+ Add Project] [Project 1] [Project 2]...`).
-    - **Laptop / Desktop Mode (`md` and up screens):**
-      - **Spacious Desktop Header:** Displays full DF Automation logo, full site dropdown, inline navigation buttons with icons and labels (`h-8 px-3 rounded-lg text-xs font-semibold`), user display name, and quick Sign Out button.
-      - **Desktop Left Sidebar:** Fixed, collapsible (`w-52` / `w-16`) sidebar alongside the main workspace.
-    - **Mobile Table & Modal Safeguards:**
-      - All data tables (`FeedView`, `ProjectWorkspace`, `TaskOverviewView`, `AdminConsole`) have `overflow-x-auto` with minimum widths (`min-w-[700px]` to `min-w-[820px]`) and smooth touch scrolling so columns never compress into vertical slivers.
-      - All modals have responsive padding (`p-3 sm:p-4`), `max-h-[92vh]`, and scrollable form bodies to prevent virtual keyboard clipping on phones.
-  - **Logged-Out View & Authentication Guard:**
-    - When logged out (or unauthenticated on `/login`), the left sidebar and top navbar compartment are completely hidden. Only the logo, title, and login card are visible.
-    - Unauthenticated access to protected routes is guarded by [`src/middleware.ts`](file:///home/tinonn/DF_satelite/src/middleware.ts), redirecting unauthenticated requests to `/login`.
+  - **Left:** Official DF Automation logo mark + "DF Automation and robotics" label + "DF satellite" title. (Top site filter is removed from the navbar).
+  - **Search Bar:** Completely removed from top bar.
+  - **Top Bar Sections (Consistent Dimensions: `h-8 px-3 rounded-lg text-xs font-semibold`):**
+    - **`issue list`** button (all roles, links to `/feed`): Activates the operational issue feed and reveals the 2nd-level issue list left sidebar.
+    - **`task Overview`** button (Engineer & Admin, links to `/task-overview`): High-level consolidated task dashboard; **hides the left sidebar**.
+    - **`project`** button (Engineer & Admin, links to `/project`): Project workspace; **reveals the Project left sidebar**.
+    - **`Administration`** button (Admin only, links to `/admin`): Super Admin Console; **hides the left sidebar**.
+    - User avatar & username badge + **Sign Out** button.
+    - *Switch Persona feature is completely disabled.*
+- **Left Sidebar (Level 2 - Sub-Module Navigation):**
+  - **Contextual Visibility:**
+    - When in **`issue list`**:
+      - **Cascading Customer & Site Filters:**
+        - **Customer Filter:** Dropdown at the top of the sidebar ("All Customers" + list of companies).
+        - **Site Filter:** Dropdown positioned directly below Customer, cascading to only list sites for the selected customer (or all sites if "All Customers" is chosen).
+        - **Active Output Filtering:** Selection immediately filters live outputs across Short Stops (`/feed`), Focus Board (`/focus`), QR codes (`/qr`), and Issue Tracker (`/issues` & `/portal/issues`).
+      - Navigation links: `Log Stop`, `Feed`, `Focus Board`, `Analytics`, `QR Codes`, `Log Issue`, `Issues`, `Settings`.
+    - When in **`project`**: Shows the Project left sidebar with 2 sections: **"My Task"** and **"Work"** (`+ Add Project` button and all created projects).
+    - When clicking **`task Overview`** or **`Administration`**, the left sidebar is **strictly hidden**, giving full-width real estate to the dashboards.
+- **📱 Mobile Phone & Laptop Responsive Architecture:**
+  - **Phone Mode (`< md` screens):**
+    - **Header & Branding:** Compact DF icon mark + "DF satellite".
+    - **Mobile Navigation Drawer:** Tapping the hamburger button (`Menu`) slides out a navigation drawer with user role badge, Level 1 sections (`issue list`, `task Overview`, `project`, `Administration`), and Sign Out.
+    - **1-Tap Quick-Pill Bar:** Positioned directly under the header on phones, providing instant 1-tap horizontal scrolling access to all Level 1 sections (`issue list`, `task Overview`, `project`, `Administration`).
+    - **Mobile Sub-Navigation & Filters Bar:** In Issue List, includes Customer and Site cascading selectors right above the scrollable pill buttons (`[Log Stop] [Feed] [Focus Board]...`). In Project, includes `[My Task] [+ Add Project] [Project 1]...`.
+  - **Laptop / Desktop Mode (`md` and up screens):**
+    - **Spacious Desktop Header:** Displays full DF Automation logo, inline navigation buttons with icons and labels (`h-8 px-3 rounded-lg text-xs font-semibold`), user display name, and quick Sign Out button.
+    - **Desktop Left Sidebar:** Fixed, collapsible (`w-52` / `w-16`) sidebar alongside the main workspace, featuring cascading Customer and Site filters in Issue List.
+  - **Mobile Table & Modal Safeguards:**
+    - All data tables (`FeedView`, `ProjectWorkspace`, `AdminConsole`) have `overflow-x-auto` with minimum widths (`min-w-[700px]` to `min-w-[820px]`) and smooth touch scrolling so columns never compress into vertical slivers.
+    - All modals have responsive padding (`p-3 sm:p-4`), `max-h-[92vh]`, and scrollable form bodies to prevent virtual keyboard clipping on phones.
+- **Logged-Out View & Authentication Guard:**
+  - When logged out (or unauthenticated on `/login`), the left sidebar and top navbar compartment are completely hidden. Only the logo, title, and login card are visible.
+  - Unauthenticated access to protected routes is guarded by [`src/middleware.ts`](file:///home/tinonn/DF_satelite/src/middleware.ts), redirecting unauthenticated requests to `/login`.
 
 ---
 
@@ -126,18 +137,21 @@ In the Super Admin Console (`/admin`), a dedicated **Customer Sites** tab enable
 
 ### 📡 Task Overview (`/task-overview`)
 - **Aborted Structure:** The previous FA Dashboard structure (`192.168.0.148:8090` proxy, DFA/DFI teams, weekly allocation calendar, engineer scoreboards) is completely aborted and removed.
-- **Full Milestone Gantt Chart (Top Prominent View):**
-  - **Y-Axis:** Displays all current and dummy projects created in the "Project" module (e.g. CAG Project Phase 2, Honda Melaka AMR, Dyson Senai Carrier, Top Glove Banting AMR, Western Digital Wafer AGV, Proton Johor, etc.).
-  - **Timeline (X-Axis):** Spans all project timelines with monthly/weekly ticks and a prominent vertical "Today" indicator line.
-  - **Continuous Timeline Track:** Shows an unbroken continuous line starting from project initialization date (`startDate`) across each milestone's target due date.
-  - **Dynamic Milestone Achievement Color Progression:**
-    - **Light Color Segment:** The line begins as a soft light color (`bg-blue-100` / `border-blue-200`), signifying planned, pending, or future milestones.
-    - **Dark Color Segment:** When a specific milestone is achieved / completed (`isDone: true`), the continuous line segment turns **dark color** (`bg-blue-700`), allowing engineers to immediately visualize at a glance which task is until which section.
-    - **Milestone Nodes:** Completed milestones display a solid emerald node with a checkmark (`✓`), while upcoming milestones display a circular node with quick labels and interactive hover tooltips (Event, Assignee, Due Date, Actual Completion Date, and Delay).
-- **Consolidated Fleet Task Dashboard:**
-  - **KPI Metric Summary Cards:** Total Tasks, Open Actions, Milestones, Issues, Delayed Tasks, Completed Tasks.
-  - **Cross-Project Unified Task Table:** Displays all tasks across all projects with Done/Undone checkboxes, The Event, Project badge (with quick link to project), Section badge, Assignee, Due Date, Actual Finished Date, and Delay ("no delay" / "+X days delay").
-  - **Filters & Search:** Quick search by task or assignee, filter by Project, Section, and Status (All / Pending / Delayed / Done).
+- **Streamlined Layout (KPI Stat Cards on Top + Full Gantt Chart Below):**
+  - **No Intermediate Header Bar:** The bar between the top navbar and the Gantt chart is completely removed.
+  - **1. KPI Metric Summary Cards (Top of Page):**
+    - 6 cards: **Total Tasks**, **Open Actions**, **Milestones**, **Issues**, **Delayed**, and **Completed**.
+  - **2. Full Interactive Milestone Gantt Chart (Directly Below KPI Cards):**
+    - **Y-Axis:** Displays all current and dummy projects created in the "Project" module (e.g. CAG Project Phase 2, Honda Melaka AMR, Dyson Senai Carrier, Top Glove Banting AMR, Western Digital Wafer AGV, Proton Johor, etc.).
+    - **Timeline (X-Axis):** Spans all project timelines with monthly/weekly ticks and a prominent vertical "Today" indicator line.
+    - **Continuous Timeline Track:** Shows an unbroken continuous line starting from project initialization date (`startDate`) across each milestone's target due date (`d/M/yyyy`).
+    - **Dynamic Milestone Achievement Color Progression:**
+      - **Light Color Segment:** Soft light color (`bg-blue-100` / `border-blue-200`) for planned/pending milestones.
+      - **Dark Color Segment:** Turns dark color (`bg-blue-700`) up to the latest completed milestone (`isDone: true`).
+      - **Milestone Nodes:** Emerald node with checkmark (`✓`) for completed milestones; circular node for upcoming milestones with hover tooltips and interactive detail modal (all dates formatted as `d/M/yyyy`).
+  - **Removed Elements:**
+    - The search input and filter dropdown bar below the Gantt chart is completely removed.
+    - The component task table below the Gantt chart is completely removed.
 
 ---
 
@@ -167,7 +181,7 @@ Matching DF Automation corporate standards, the runtime database is strictly dec
 * **Network Binding:** Binds to `0.0.0.0` on port `3000` with automatic host LAN IP detection.
 
 ```
-DF_satelite/
+DF_satellite/
 ├── Database/
 │   ├── data/                 # Isolated runtime SQLite DB (satellite.db)
 │   └── backups/              # Exported ZIP backup archives

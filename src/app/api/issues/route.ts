@@ -10,11 +10,17 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
     const siteId = searchParams.get("siteId");
+    const companyId = searchParams.get("companyId");
 
     const where: any = {};
-    if (siteFilter) where.siteId = siteFilter;
+    if (siteFilter) {
+      where.siteId = siteFilter;
+    } else if (siteId && siteId !== "ALL") {
+      where.siteId = siteId;
+    } else if (companyId && companyId !== "ALL") {
+      where.site = { companyId };
+    }
     if (projectId) where.projectId = projectId;
-    if (siteId && siteId !== "ALL") where.siteId = siteId;
 
     const issues = await prisma.issue.findMany({
       where,

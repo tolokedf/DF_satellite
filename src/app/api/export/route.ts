@@ -93,7 +93,7 @@ export async function GET(req: Request) {
     <div class="brand">DF <span>SATELLITE</span> <small style="font-size: 10pt; color: #64748b; font-weight: normal;">| Field Robotics Operations</small></div>
     <div class="doc-meta">
       <div><strong>Report Code:</strong> ${project.code}</div>
-      <div><strong>Generated:</strong> ${format(new Date(), "yyyy-MM-dd HH:mm")}</div>
+      <div><strong>Generated:</strong> ${format(new Date(), "d/M/yyyy HH:mm")}</div>
     </div>
   </div>
 
@@ -115,7 +115,7 @@ export async function GET(req: Request) {
       </div>
       <div>
         <div class="label">Target Go-Live</div>
-        <div class="val">${project.targetGoLive ? format(new Date(project.targetGoLive), "yyyy-MM-dd") : "TBD"}</div>
+        <div class="val">${project.targetGoLive ? format(new Date(project.targetGoLive), "d/M/yyyy") : "TBD"}</div>
       </div>
     </div>
   </div>
@@ -152,7 +152,7 @@ export async function GET(req: Request) {
               ${item.priority}
             </span>
           </td>
-          <td>${item.targetDate ? format(new Date(item.targetDate), "yyyy-MM-dd") : "-"}</td>
+          <td>${item.targetDate ? format(new Date(item.targetDate), "d/M/yyyy") : "-"}</td>
           <td>
             <span class="badge ${item.status === 'DONE' ? 'badge-done' : item.status === 'IN_PROGRESS' ? 'badge-prog' : 'badge-open'}">
               ${item.status}
@@ -227,7 +227,7 @@ export async function GET(req: Request) {
     <tbody>
       ${shortStops.map(stop => `
         <tr>
-          <td>${format(new Date(stop.startTime), "yyyy-MM-dd HH:mm")}</td>
+          <td>${format(new Date(stop.startTime), "d/M/yyyy HH:mm")}</td>
           <td><strong>${stop.robot.code}</strong></td>
           <td><strong>${stop.category}</strong></td>
           <td>${stop.specificLocation || stop.zone || "-"}</td>
@@ -244,7 +244,7 @@ export async function GET(req: Request) {
   </div>
   ${project.dailyReports.length > 0 ? `
     <div style="margin-bottom: 12px; font-size: 9.5pt;">
-      <strong>Latest Daily Field Activity (${format(new Date(project.dailyReports[0].reportDate), "yyyy-MM-dd")} - ${project.dailyReports[0].engineerName}):</strong>
+      <strong>Latest Daily Field Activity (${format(new Date(project.dailyReports[0].reportDate), "d/M/yyyy")} - ${project.dailyReports[0].engineerName}):</strong>
       <pre style="white-space: pre-wrap; font-family: inherit; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 4px; margin-top: 6px;">${project.dailyReports[0].activitiesDone}</pre>
     </div>
   ` : ""}

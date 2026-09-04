@@ -289,8 +289,8 @@ export default function GanttChart({ projects }: GanttChartProps) {
                       left: `${startPct}%`,
                       width: `${Math.max(1, endPct - startPct)}%`,
                     }}
-                    title={`Project Timeline: ${format(new Date(projectStart), "d MMM")} → ${
-                      lastMilestone ? format(new Date(lastMilestone.dueDate!), "d MMM yyyy") : ""
+                    title={`Project Timeline: ${format(new Date(projectStart), "d/M/yyyy")} → ${
+                      lastMilestone ? format(new Date(lastMilestone.dueDate!), "d/M/yyyy") : ""
                     }`}
                   />
 
@@ -312,11 +312,11 @@ export default function GanttChart({ projects }: GanttChartProps) {
                   <div
                     className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-3 group/start cursor-pointer"
                     style={{ left: `${startPct}%` }}
-                    title={`Initialized: ${format(new Date(projectStart), "dd MMM yyyy")}`}
+                    title={`Initialized: ${format(new Date(projectStart), "d/M/yyyy")}`}
                   >
                     <div className="w-3 h-3 rounded-full bg-slate-900 border-2 border-white shadow-xs" />
                     <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-bold text-slate-600 bg-white/90 px-1 rounded shadow-2xs whitespace-nowrap opacity-0 group-hover/start:opacity-100 transition">
-                      Init: {format(new Date(projectStart), "dd MMM")}
+                      Init: {format(new Date(projectStart), "d/M/yyyy")}
                     </span>
                   </div>
 
@@ -374,9 +374,9 @@ export default function GanttChart({ projects }: GanttChartProps) {
                           </div>
                           <div className="text-slate-300 text-[10px] mt-1">
                             <div>Assignee: <span className="text-white font-medium">{m.assignee}</span></div>
-                            <div>Due: <span className="text-white font-medium">{m.dueDate ? format(new Date(m.dueDate), "dd MMM yyyy") : "—"}</span></div>
+                            <div>Due: <span className="text-white font-medium">{m.dueDate ? format(new Date(m.dueDate), "d/M/yyyy") : "—"}</span></div>
                             {m.actualFinishedDate && (
-                              <div>Finished: <span className="text-emerald-300 font-medium">{format(new Date(m.actualFinishedDate), "dd MMM yyyy")}</span></div>
+                              <div>Finished: <span className="text-emerald-300 font-medium">{format(new Date(m.actualFinishedDate), "d/M/yyyy")}</span></div>
                             )}
                           </div>
                         </div>
@@ -456,7 +456,7 @@ export default function GanttChart({ projects }: GanttChartProps) {
                     Due Date
                   </span>
                   <div className="font-semibold text-slate-800 mt-0.5">
-                    {selectedMilestone.task.dueDate ? format(new Date(selectedMilestone.task.dueDate), "dd MMM yyyy") : "—"}
+                    {selectedMilestone.task.dueDate ? format(new Date(selectedMilestone.task.dueDate), "d/M/yyyy") : "—"}
                   </div>
                 </div>
 
@@ -465,7 +465,7 @@ export default function GanttChart({ projects }: GanttChartProps) {
                     Actual Finished
                   </span>
                   <div className="font-semibold text-slate-800 mt-0.5">
-                    {selectedMilestone.task.actualFinishedDate ? format(new Date(selectedMilestone.task.actualFinishedDate), "dd MMM yyyy") : "Pending"}
+                    {selectedMilestone.task.actualFinishedDate ? format(new Date(selectedMilestone.task.actualFinishedDate), "d/M/yyyy") : "Pending"}
                   </div>
                 </div>
               </div>

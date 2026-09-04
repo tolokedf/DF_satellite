@@ -38,7 +38,7 @@ const ACTION_TAKEN_CHIPS = [
 ];
 
 export default function LogShortStopForm() {
-  const { currentSiteId, availableSites } = useSite();
+  const { currentSiteId, currentCustomerId, availableSites, filteredSitesForCustomer } = useSite();
 
   const [robots, setRobots] = useState<any[]>([]);
   const [selectedRobotId, setSelectedRobotId] = useState<string>("");
@@ -71,9 +71,15 @@ export default function LogShortStopForm() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
 
-  // Fetch robots based on current site selection
+  // Fetch robots based on current site and customer selection
   useEffect(() => {
-    const siteQuery = currentSiteId && currentSiteId !== "ALL" ? `?siteId=${currentSiteId}` : "";
+    const params = new URLSearchParams();
+    if (currentSiteId && currentSiteId !== "ALL") {
+      params.append("siteId", currentSiteId);
+    } else if (currentCustomerId && currentCustomerId !== "ALL") {
+      params.append("companyId", currentCustomerId);
+    }
+    const siteQuery = params.toString() ? `?${params.toString()}` : "";
     fetch(`/api/robots${siteQuery}`)
       .then((res) => res.json())
       .then((data) => {
@@ -91,7 +97,7 @@ export default function LogShortStopForm() {
         }
       })
       .catch(() => {});
-  }, [currentSiteId]);
+  }, [currentSiteId, currentCustomerId]);
 
   // Recalculate recovered time when start time or duration changes
   useEffect(() => {
@@ -160,7 +166,7 @@ export default function LogShortStopForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          siteId: targetSiteId || (currentSiteId !== "ALL" ? currentSiteId : availableSites[0]?.id),
+          siteId: targetSiteId || (currentSiteId !== "ALL" ? currentSiteId : (filteredSitesForCustomer[0]?.id || availableSites[0]?.id)),
           robotId: selectedRobotId,
           category: finalCategory,
           zone,

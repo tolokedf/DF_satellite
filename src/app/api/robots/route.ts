@@ -9,10 +9,16 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const siteId = searchParams.get("siteId");
+    const companyId = searchParams.get("companyId");
 
     const where: any = {};
-    if (siteFilter) where.siteId = siteFilter;
-    if (siteId && siteId !== "ALL") where.siteId = siteId;
+    if (siteFilter) {
+      where.siteId = siteFilter;
+    } else if (siteId && siteId !== "ALL") {
+      where.siteId = siteId;
+    } else if (companyId && companyId !== "ALL") {
+      where.site = { companyId };
+    }
 
     const robots = await prisma.robot.findMany({
       where,

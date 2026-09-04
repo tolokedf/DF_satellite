@@ -9,6 +9,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const siteId = searchParams.get("siteId");
+    const companyId = searchParams.get("companyId");
     const robotId = searchParams.get("robotId");
     const category = searchParams.get("category");
     const zone = searchParams.get("zone");
@@ -18,8 +19,13 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "200", 10);
 
     const where: any = {};
-    if (siteFilter) where.siteId = siteFilter;
-    if (siteId && siteId !== "ALL") where.siteId = siteId;
+    if (siteFilter) {
+      where.siteId = siteFilter;
+    } else if (siteId && siteId !== "ALL") {
+      where.siteId = siteId;
+    } else if (companyId && companyId !== "ALL") {
+      where.site = { companyId };
+    }
     if (robotId && robotId !== "ALL") where.robotId = robotId;
     if (category && category !== "ALL" && category !== "All") where.category = category;
     if (zone && zone !== "ALL" && zone !== "All") where.zone = zone;

@@ -499,7 +499,7 @@ export default function MyRoleView({ currentUser }: MyRoleViewProps) {
                       <td className="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{format(new Date(m.dueDate), "dd MMM yyyy")}</span>
+                          <span>{format(new Date(m.dueDate), "d/M/yyyy")}</span>
                         </div>
                       </td>
 
@@ -508,7 +508,7 @@ export default function MyRoleView({ currentUser }: MyRoleViewProps) {
                         {isCompleted ? (
                           <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{format(new Date(m.actualCompletionDate!), "dd MMM yyyy")}</span>
+                            <span>{format(new Date(m.actualCompletionDate!), "d/M/yyyy")}</span>
                           </div>
                         ) : (
                           <button
@@ -732,7 +732,7 @@ export default function MyRoleView({ currentUser }: MyRoleViewProps) {
                   className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-800"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Target Due Date: {format(new Date(quickCompleteItem.dueDate), "dd MMM yyyy")}
+                  Target Due Date: {format(new Date(quickCompleteItem.dueDate), "d/M/yyyy")}
                 </p>
               </div>
 

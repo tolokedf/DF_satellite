@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { 
-  Building2, 
   Activity, 
   FolderKanban, 
   ShieldCheck, 
@@ -31,7 +30,7 @@ interface NavbarProps {
 export default function Navbar({ currentUser }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentSiteId, setCurrentSiteId, availableSites, isCustomer, isEngineer, isAdmin } = useSite();
+  const { isCustomer, isEngineer, isAdmin } = useSite();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -73,29 +72,6 @@ export default function Navbar({ currentUser }: NavbarProps) {
                 </span>
               </div>
             </Link>
-
-            {/* Site Filter (beside DF logo section) */}
-            <div className="relative flex items-center pl-2 sm:pl-3 border-l border-slate-200 min-w-0">
-              <Building2 className="w-3.5 h-3.5 text-slate-500 mr-1 sm:mr-1.5 shrink-0 pointer-events-none" />
-              <div className="relative inline-block max-w-[120px] sm:max-w-[180px]">
-                <select
-                  value={currentSiteId}
-                  onChange={(e) => setCurrentSiteId(e.target.value)}
-                  className="w-full appearance-none bg-slate-50 hover:bg-slate-100/80 text-slate-800 text-xs font-semibold py-1.5 pl-2 pr-6 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition truncate"
-                >
-                  {(availableSites.length > 1 || !isCustomer) && (
-                    <option value="ALL">All Sites</option>
-                  )}
-
-                  {availableSites.map((site) => (
-                    <option key={site.id} value={site.id}>
-                      {!isCustomer && site.company ? `${site.company.name} - ${site.name}` : site.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3 h-3 text-slate-500 absolute right-1.5 top-2.5 pointer-events-none" />
-              </div>
-            </div>
           </div>
 
           {/* Desktop Navigation Buttons (md and up) */}

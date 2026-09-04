@@ -746,14 +746,14 @@ export default function ProjectWorkspace() {
 
                         {/* Column 3: Due Date */}
                         <td className="py-3 px-3 align-middle text-slate-600">
-                          {task.dueDate ? format(new Date(task.dueDate), "dd MMM yyyy") : "—"}
+                          {task.dueDate ? format(new Date(task.dueDate), "d/M/yyyy") : "—"}
                         </td>
 
                         {/* Column 4: Actual Finished Date */}
                         <td className="py-3 px-3 align-middle">
                           {task.actualFinishedDate ? (
                             <span className="text-emerald-700 font-semibold">
-                              {format(new Date(task.actualFinishedDate), "dd MMM yyyy")}
+                              {format(new Date(task.actualFinishedDate), "d/M/yyyy")}
                             </span>
                           ) : (
                             <span className="text-slate-400 italic">Pending</span>

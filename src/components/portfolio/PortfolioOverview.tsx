@@ -295,7 +295,7 @@ export default function PortfolioOverview() {
                   <span>
                     Go-Live:{" "}
                     <strong>
-                      {proj.targetGoLive ? format(new Date(proj.targetGoLive), "MMM yyyy") : "TBD"}
+                      {proj.targetGoLive ? format(new Date(proj.targetGoLive), "d/M/yyyy") : "TBD"}
                     </strong>
                   </span>
                 </div>

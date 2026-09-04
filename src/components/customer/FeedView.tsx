@@ -7,7 +7,7 @@ import { Download, Plus, RefreshCw } from "lucide-react";
 import { useSite } from "@/context/SiteContext";
 
 export default function FeedView() {
-  const { currentSiteId } = useSite();
+  const { currentSiteId, currentCustomerId, currentCustomerName, currentSiteName } = useSite();
 
   const [stops, setStops] = useState<any[]>([]);
   const [robots, setRobots] = useState<any[]>([]);
@@ -32,7 +32,11 @@ export default function FeedView() {
   const fetchStops = () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (currentSiteId && currentSiteId !== "ALL") params.append("siteId", currentSiteId);
+    if (currentSiteId && currentSiteId !== "ALL") {
+      params.append("siteId", currentSiteId);
+    } else if (currentCustomerId && currentCustomerId !== "ALL") {
+      params.append("companyId", currentCustomerId);
+    }
     if (selectedAgv !== "All") params.append("robotId", selectedAgv);
     if (selectedZone !== "All") params.append("zone", selectedZone);
     if (selectedCategory !== "All") params.append("category", selectedCategory);
@@ -63,17 +67,30 @@ export default function FeedView() {
 
   useEffect(() => {
     // Fetch robots for AGV dropdown
-    const siteQuery = currentSiteId && currentSiteId !== "ALL" ? `?siteId=${currentSiteId}` : "";
+    const rParams = new URLSearchParams();
+    if (currentSiteId && currentSiteId !== "ALL") {
+      rParams.append("siteId", currentSiteId);
+    } else if (currentCustomerId && currentCustomerId !== "ALL") {
+      rParams.append("companyId", currentCustomerId);
+    }
+    const siteQuery = rParams.toString() ? `?${rParams.toString()}` : "";
     fetch(`/api/robots${siteQuery}`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setRobots(data);
       });
-  }, [currentSiteId]);
+  }, [currentSiteId, currentCustomerId]);
 
   useEffect(() => {
     fetchStops();
-  }, [currentSiteId]);
+  }, [
+    currentSiteId,
+    currentCustomerId,
+    selectedAgv,
+    selectedZone,
+    selectedCategory,
+    selectedSource,
+  ]);
 
   const handleApplyFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +114,7 @@ export default function FeedView() {
     const headers = ["ID,WHEN,AGV,ZONE,CATEGORY,LOCATION/STATION,PROBLEM,DESCRIPTION"];
     const rows = stops.map((s, idx) => {
       const id = `#${8014 - idx}`;
-      const when = format(new Date(s.startTime), "yyyy-MM-dd HH:mm");
+      const when = format(new Date(s.startTime), "d/M/yyyy HH:mm");
       const agv = s.robot?.code || "";
       const zone = s.zone || "";
       const cat = `"${s.category || ""}"`;
@@ -325,7 +342,7 @@ export default function FeedView() {
 
                     {/* WHEN */}
                     <td className="py-2.5 px-3.5 text-slate-600 font-mono text-[11px] whitespace-nowrap">
-                      {format(new Date(stop.startTime), "yyyy-MM-dd HH:mm")}
+                      {format(new Date(stop.startTime), "d/M/yyyy HH:mm")}
                     </td>
 
                     {/* AGV (Blue bold badge) */}

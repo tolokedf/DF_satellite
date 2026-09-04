@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, CheckCircle2, AlertCircle, Wrench, FileText } from "lucide-react";
+import { useSite } from "@/context/SiteContext";
 
 interface LogIssueFormProps {
   initialSiteId?: string;
@@ -9,6 +10,7 @@ interface LogIssueFormProps {
 }
 
 export default function LogIssueForm({ initialSiteId, onSuccess }: LogIssueFormProps) {
+  const { currentSiteId, currentCustomerId } = useSite();
   const [sites, setSites] = useState<any[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string>(initialSiteId || "");
   const [robots, setRobots] = useState<any[]>([]);
@@ -29,14 +31,19 @@ export default function LogIssueForm({ initialSiteId, onSuccess }: LogIssueFormP
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setSites(data);
-          if (!selectedSiteId && data.length > 0) {
-            setSelectedSiteId(data[0].id);
+          const available = currentCustomerId !== "ALL"
+            ? data.filter((s: any) => s.companyId === currentCustomerId)
+            : data;
+          setSites(available);
+          if (currentSiteId !== "ALL" && available.some((s: any) => s.id === currentSiteId)) {
+            setSelectedSiteId(currentSiteId);
+          } else if (available.length > 0) {
+            setSelectedSiteId(available[0].id);
           }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [currentCustomerId, currentSiteId]);
 
   useEffect(() => {
     if (!selectedSiteId) return;

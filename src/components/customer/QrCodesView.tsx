@@ -7,7 +7,7 @@ import { useSite } from "@/context/SiteContext";
 const SHOW_FILTERS = ["All", "AGVs", "ARVs", "Smart Racks", "Zones"];
 
 export default function QrCodesView() {
-  const { currentSiteId } = useSite();
+  const { currentSiteId, currentCustomerId } = useSite();
   const [robots, setRobots] = useState<any[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>("All");
 
@@ -17,13 +17,19 @@ export default function QrCodesView() {
   const [builderStation, setBuilderStation] = useState<string>("");
 
   useEffect(() => {
-    const query = currentSiteId && currentSiteId !== "ALL" ? `?siteId=${currentSiteId}` : "";
+    const params = new URLSearchParams();
+    if (currentSiteId && currentSiteId !== "ALL") {
+      params.append("siteId", currentSiteId);
+    } else if (currentCustomerId && currentCustomerId !== "ALL") {
+      params.append("companyId", currentCustomerId);
+    }
+    const query = params.toString() ? `?${params.toString()}` : "";
     fetch(`/api/robots${query}`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setRobots(data);
       });
-  }, [currentSiteId]);
+  }, [currentSiteId, currentCustomerId]);
 
   const filteredRobots = robots.filter((r) => {
     if (selectedFilter === "AGVs") return r.type === "AGV";
