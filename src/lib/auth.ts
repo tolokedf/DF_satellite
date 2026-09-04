@@ -3,7 +3,7 @@ import prisma from "./prisma";
 import { SessionUser, UserRole } from "./types";
 import bcrypt from "bcryptjs";
 
-const COOKIE_NAME = "df_satellite_session";
+export const COOKIE_NAME = "df_satellite_session";
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const cookieStore = cookies();
@@ -64,7 +64,8 @@ export function setSessionCookie(user: SessionUser) {
   const serialized = serializeSession(user);
   cookies().set(COOKIE_NAME, serialized, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // Must be false on HTTP LAN IP (http://192.168.x.x:3000) so browsers on other devices don't drop the cookie
+    secure: process.env.SECURE_COOKIES === "true",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 days

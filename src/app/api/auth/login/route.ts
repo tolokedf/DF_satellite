@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { setSessionCookie } from "@/lib/auth";
+import { setSessionCookie, serializeSession, COOKIE_NAME } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
@@ -62,7 +62,15 @@ export async function POST(req: Request) {
 
     setSessionCookie(sessionUser);
 
-    return NextResponse.json({ success: true, user: sessionUser });
+    const res = NextResponse.json({ success: true, user: sessionUser });
+    res.cookies.set(COOKIE_NAME, serializeSession(sessionUser), {
+      httpOnly: true,
+      secure: process.env.SECURE_COOKIES === "true",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    return res;
   } catch (error: any) {
     console.error("Login error:", error);
     return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 });

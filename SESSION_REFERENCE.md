@@ -18,6 +18,10 @@
 - **Single Device Active Session:** Only one device is allowed to be logged into an account at any one time. When a user logs in on a device, a unique `sessionToken` is generated and tracked in the database (`User.sessionToken`). If the account is logged into on another device, the previous device session is immediately invalidated.
 - **Switch Persona Feature Disabled:** Fast persona switching is completely removed from both the UI and backend APIs.
 - **Manual Logout Required:** If changing accounts is needed, the user must explicitly click the **Sign Out** button, which clears the session cookie and navigates to the login screen. The user must then manually enter their credentials (username and password) to log in with the other account.
+- **Cross-Device LAN IP Access Support:**
+  - Cookies are configured with `secure: process.env.SECURE_COOKIES === "true"` (default `false` over HTTP LAN deployments).
+  - Explicit `credentials: "include"` is set on login requests, and the session cookie is dispatched across both `cookies().set(...)` and `NextResponse.cookies.set(...)`.
+  - When accessing via a local network IP (e.g. `http://192.168.1.148:3000`), mobile and desktop browsers on other devices do not reject or drop the cookie, enabling seamless login and persistent sessions across any device on the LAN.
 
 ### 🛡️ Single Administrator Account
 - **Master Admin Only:** Only one admin account exists in the system (`admin` / `df`).
