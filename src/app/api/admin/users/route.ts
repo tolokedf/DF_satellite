@@ -50,6 +50,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Username and password are required" }, { status: 400 });
     }
 
+    if (role === "ADMIN") {
+      return NextResponse.json(
+        { error: "Only one admin account is permitted in the system." },
+        { status: 400 }
+      );
+    }
+
+    if (role !== "CUSTOMER" && role !== "ENGINEER") {
+      return NextResponse.json(
+        { error: "Invalid role. Role must be CUSTOMER or ENGINEER." },
+        { status: 400 }
+      );
+    }
+
     const existing = await prisma.user.findUnique({
       where: { username: username.toLowerCase().trim() },
     });
@@ -66,10 +80,10 @@ export async function POST(req: Request) {
         email: email || null,
         passwordHash,
         name: name || username,
-        role: role || "CUSTOMER",
-        companyId: companyId || null,
-        assignedSiteIds: JSON.stringify(assignedSiteIds || []),
-        googleLinked: Boolean(googleLinked),
+        role: role,
+        companyId: role === "CUSTOMER" ? companyId || null : null,
+        assignedSiteIds: role === "CUSTOMER" ? JSON.stringify(assignedSiteIds || []) : JSON.stringify([]),
+        googleLinked: false,
       },
     });
 
@@ -119,6 +133,12 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    const target = await prisma.user.findUnique({ where: { id } });
+    if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (target.username === "admin" || target.role === "ADMIN") {
+      return NextResponse.json({ error: "The master admin account cannot be deleted." }, { status: 400 });
+    }
 
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });

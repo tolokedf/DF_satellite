@@ -10,6 +10,7 @@ export interface SessionUser {
   assignedSiteIds: string[]; // List of site IDs the user is allowed to access
   companyName?: string;
   googleLinked: boolean;
+  sessionToken?: string;
 }
 
 export type ProjectHealth = "ON_TRACK" | "AT_RISK" | "OFF_TRACK";

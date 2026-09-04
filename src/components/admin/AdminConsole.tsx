@@ -24,7 +24,7 @@ export default function AdminConsole() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [robots, setRobots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState<"users" | "fleet" | "portability">("users");
+  const [activeSubTab, setActiveSubTab] = useState<"users" | "sites" | "fleet" | "portability">("users");
 
   // New User form state
   const [username, setUsername] = useState("");
@@ -35,6 +35,14 @@ export default function AdminConsole() {
   const [companyId, setCompanyId] = useState("");
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
   const [googleLinked, setGoogleLinked] = useState(false);
+
+  // New Site form state
+  const [siteName, setSiteName] = useState("");
+  const [siteCode, setSiteCode] = useState("");
+  const [siteLocation, setSiteLocation] = useState("");
+  const [siteCompanyId, setSiteCompanyId] = useState("");
+  const [isNewCompany, setIsNewCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState("");
 
   // New Robot form state
   const [robotCode, setRobotCode] = useState("");
@@ -65,6 +73,7 @@ export default function AdminConsole() {
         const compList = Object.values(compMap);
         setCompanies(compList);
         if (compList.length > 0 && !companyId) setCompanyId(compList[0].id);
+        if (compList.length > 0 && !siteCompanyId) setSiteCompanyId(compList[0].id);
         if (sRes.length > 0 && !robotSiteId) setRobotSiteId(sRes[0].id);
       }
       if (Array.isArray(rRes)) setRobots(rRes);
@@ -83,6 +92,62 @@ export default function AdminConsole() {
     setSelectedSiteIds((prev) =>
       prev.includes(siteId) ? prev.filter((id) => id !== siteId) : [...prev, siteId]
     );
+  };
+
+  const handleCreateSite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!siteName) {
+      setMessage({ type: "error", text: "Site name is required." });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/sites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: siteName,
+          code: siteCode || undefined,
+          companyId: isNewCompany ? undefined : siteCompanyId,
+          newCompanyName: isNewCompany ? newCompanyName : undefined,
+          location: siteLocation || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create site");
+
+      setMessage({
+        type: "success",
+        text: `Customer site '${data.name}' (${data.company?.name || ""}) added successfully!`,
+      });
+
+      setSiteName("");
+      setSiteCode("");
+      setSiteLocation("");
+      setNewCompanyName("");
+      setIsNewCompany(false);
+      fetchData();
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message });
+    }
+  };
+
+  const handleDeleteSite = async (siteId: string, sName: string) => {
+    if (!confirm(`Are you sure you want to delete site '${sName}'? All associated robots and stop logs will be affected.`)) return;
+
+    try {
+      const res = await fetch(`/api/sites?id=${siteId}`, { method: "DELETE" });
+      if (res.ok) {
+        setMessage({ type: "success", text: `Site '${sName}' deleted.` });
+        fetchData();
+      } else {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to delete site");
+      }
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message });
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -207,7 +272,7 @@ export default function AdminConsole() {
       )}
 
       {/* Sub Tabs */}
-      <div className="flex border-b border-slate-200 gap-4 text-xs font-bold">
+      <div className="flex border-b border-slate-200 gap-2 sm:gap-4 text-xs font-bold overflow-x-auto pb-1 sm:pb-0 scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setActiveSubTab("users")}
           className={`pb-2.5 border-b-2 transition flex items-center gap-1.5 ${
@@ -218,6 +283,18 @@ export default function AdminConsole() {
         >
           <Users className="w-4 h-4" />
           <span>User Accounts & RBAC ({users.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab("sites")}
+          className={`pb-2.5 border-b-2 transition flex items-center gap-1.5 ${
+            activeSubTab === "sites"
+              ? "border-purple-600 text-purple-700"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>Customer Sites ({sites.length})</span>
         </button>
 
         <button
@@ -307,12 +384,17 @@ export default function AdminConsole() {
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">Role *</label>
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
+                    onChange={(e) => {
+                      const newRole = e.target.value;
+                      setRole(newRole);
+                      if (newRole === "ENGINEER") {
+                        setSelectedSiteIds([]);
+                      }
+                    }}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none font-medium"
                   >
                     <option value="CUSTOMER">Customer</option>
                     <option value="ENGINEER">Engineer</option>
-                    <option value="ADMIN">Admin</option>
                   </select>
                 </div>
 
@@ -322,7 +404,7 @@ export default function AdminConsole() {
                     value={companyId}
                     onChange={(e) => setCompanyId(e.target.value)}
                     disabled={role !== "CUSTOMER"}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none disabled:opacity-50"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                   >
                     {companies.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -330,27 +412,49 @@ export default function AdminConsole() {
                       </option>
                     ))}
                   </select>
+                  {role === "ENGINEER" && (
+                    <p className="text-[10px] text-blue-600 font-medium mt-0.5">DF Internal</p>
+                  )}
                 </div>
               </div>
 
               {/* Site Access Checkboxes */}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Authorized Sites (Scope Constraint)
-                </label>
-                <div className="space-y-1.5 max-h-36 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700">
+                    Authorized Sites (Scope Constraint)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab("sites")}
+                    className="text-[10px] font-bold text-purple-600 hover:text-purple-800 underline"
+                  >
+                    + Add New Site
+                  </button>
+                </div>
+
+                <div
+                  className={`space-y-1.5 max-h-36 overflow-y-auto border border-slate-200 rounded-lg p-2 transition ${
+                    role === "ENGINEER"
+                      ? "bg-slate-100 opacity-40 pointer-events-none select-none cursor-not-allowed border-slate-300"
+                      : "bg-slate-50"
+                  }`}
+                >
                   {sites.map((s) => {
-                    const checked = selectedSiteIds.includes(s.id);
+                    const checked = role === "ENGINEER" || selectedSiteIds.includes(s.id);
                     return (
                       <label
                         key={s.id}
-                        className="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer hover:text-slate-900"
+                        className={`flex items-center space-x-2 text-xs text-slate-700 ${
+                          role === "ENGINEER" ? "cursor-not-allowed text-slate-400" : "cursor-pointer hover:text-slate-900"
+                        }`}
                       >
                         <input
                           type="checkbox"
                           checked={checked}
+                          disabled={role === "ENGINEER"}
                           onChange={() => handleToggleSite(s.id)}
-                          className="rounded text-purple-600 focus:ring-purple-500"
+                          className="rounded text-purple-600 focus:ring-purple-500 disabled:text-slate-400"
                         />
                         <span className="truncate">
                           {s.company?.name} - {s.name}
@@ -360,7 +464,9 @@ export default function AdminConsole() {
                   })}
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Customers can only see data from checked sites. Engineers/Admins can see all.
+                  {role === "ENGINEER"
+                    ? "Engineers have global access to all customer sites automatically."
+                    : "Customers can only see data from checked sites."}
                 </p>
               </div>
 
@@ -379,7 +485,7 @@ export default function AdminConsole() {
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-2 space-y-3">
             <h2 className="text-sm font-bold text-slate-800">Existing Users & Site Scoping</h2>
             <div className="overflow-x-auto border border-slate-200 rounded-lg">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-xs border-collapse min-w-[620px]">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                     <th className="py-2.5 px-3">Username</th>
@@ -446,7 +552,174 @@ export default function AdminConsole() {
         </div>
       )}
 
-      {/* Tab 2: Fleet Management */}
+      {/* Tab 2: Site Management (Provisioning New Sites) */}
+      {activeSubTab === "sites" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Add Site Form */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-1 space-y-4">
+            <div>
+              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <Plus className="w-4 h-4 text-purple-600" />
+                Add New Customer Site
+              </h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Provision a new plant, warehouse, or facility for a customer.
+              </p>
+            </div>
+
+            <form onSubmit={handleCreateSite} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Site / Facility Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={siteName}
+                  onChange={(e) => setSiteName(e.target.value)}
+                  placeholder="e.g. Tanjung Malim Plant, Rawang DC"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Site Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={siteCode}
+                  onChange={(e) => setSiteCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. TJ_MALIM, RAWANG_DC"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:bg-white focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Leave empty to auto-generate from site name.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700">
+                    Company / Organization *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsNewCompany(!isNewCompany)}
+                    className="text-[10px] font-bold text-purple-600 hover:text-purple-800 underline"
+                  >
+                    {isNewCompany ? "Choose Existing" : "+ New Company"}
+                  </button>
+                </div>
+
+                {isNewCompany ? (
+                  <input
+                    type="text"
+                    required
+                    value={newCompanyName}
+                    onChange={(e) => setNewCompanyName(e.target.value)}
+                    placeholder="Enter company name (e.g. Daikin, Inari)"
+                    className="w-full bg-slate-50 border border-purple-300 rounded-lg px-3 py-1.5 text-xs focus:bg-white focus:outline-none"
+                  />
+                ) : (
+                  <select
+                    value={siteCompanyId}
+                    onChange={(e) => setSiteCompanyId(e.target.value)}
+                    required
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none font-medium"
+                  >
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Location / State (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={siteLocation}
+                  onChange={(e) => setSiteLocation(e.target.value)}
+                  placeholder="e.g. Perak, Malaysia"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs py-2 rounded-lg shadow transition"
+                >
+                  Create Customer Site
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Sites List Table */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-800">Existing Customer Sites ({sites.length})</h2>
+              <span className="text-[11px] text-slate-500">Available across all modules & fleet filters</span>
+            </div>
+            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <table className="w-full text-left text-xs border-collapse min-w-[620px]">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                    <th className="py-2.5 px-3">Company</th>
+                    <th className="py-2.5 px-3">Site Name</th>
+                    <th className="py-2.5 px-3">Site Code</th>
+                    <th className="py-2.5 px-3">Location</th>
+                    <th className="py-2.5 px-3 text-center">Fleet</th>
+                    <th className="py-2.5 px-3 text-center">Stops Logged</th>
+                    <th className="py-2.5 px-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {sites.map((s) => (
+                    <tr key={s.id} className="hover:bg-slate-50 transition">
+                      <td className="py-2.5 px-3 font-bold text-slate-900">
+                        {s.company?.name || "Internal"}
+                      </td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-800">{s.name}</td>
+                      <td className="py-2.5 px-3">
+                        <code className="text-[11px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 font-semibold">
+                          {s.code}
+                        </code>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-600">{s.location || "-"}</td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span className="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded text-[11px]">
+                          {s.robots?.length ?? s._count?.robots ?? 0}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-center text-slate-600 font-medium">
+                        {s._count?.shortStops ?? 0}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <button
+                          onClick={() => handleDeleteSite(s.id, s.name)}
+                          className="text-slate-400 hover:text-rose-600 transition"
+                          title="Delete site"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Fleet Management */}
       {activeSubTab === "fleet" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-1 space-y-4">
@@ -533,7 +806,7 @@ export default function AdminConsole() {
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-2 space-y-3">
             <h2 className="text-sm font-bold text-slate-800">Fleet Inventory Across Sites</h2>
             <div className="overflow-x-auto border border-slate-200 rounded-lg">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-xs border-collapse min-w-[620px]">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                     <th className="py-2.5 px-3">Robot Code</th>

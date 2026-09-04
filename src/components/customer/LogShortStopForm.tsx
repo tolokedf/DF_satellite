@@ -2,12 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { QrCode, CheckCircle2, AlertCircle, Clock, MapPin, Tag } from "lucide-react";
-
-interface LogShortStopFormProps {
-  initialSiteId?: string;
-  onSuccess?: () => void;
-}
+import { QrCode, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { useSite } from "@/context/SiteContext";
 
 const DEFAULT_CATEGORIES = [
   "Panel Transfer Stuck",
@@ -32,11 +28,21 @@ const DOWNTIME_CHIPS = [
   { label: "Others", minutes: null },
 ];
 
-export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortStopFormProps) {
-  const [sites, setSites] = useState<any[]>([]);
-  const [selectedSiteId, setSelectedSiteId] = useState<string>(initialSiteId || "");
+const ACTION_TAKEN_CHIPS = [
+  "Not resolved",
+  "Resolved",
+  "Restarted AGV",
+  "Cleared obstacle",
+  "Reset / power cycle",
+  "Pending engineering",
+];
+
+export default function LogShortStopForm() {
+  const { currentSiteId, availableSites } = useSite();
+
   const [robots, setRobots] = useState<any[]>([]);
   const [selectedRobotId, setSelectedRobotId] = useState<string>("");
+  const [targetSiteId, setTargetSiteId] = useState<string>("");
   const [zone, setZone] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [customCategory, setCustomCategory] = useState<string>("");
@@ -51,55 +57,41 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
   const [durationMinutes, setDurationMinutes] = useState<number>(1);
   const [recoveredTime, setRecoveredTime] = useState<string>("");
   const [specificLocation, setSpecificLocation] = useState<string>("");
-  const [resolvedBy, setResolvedBy] = useState<string>("Operator Reset");
-  const [recoveryAction, setRecoveryAction] = useState<string>("Operator Reset");
+
+  // Additional fields from reference images
+  const [problemSummary, setProblemSummary] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [actionTakenChip, setActionTakenChip] = useState<string>("Resolved");
+  const [actionTakenText, setActionTakenText] = useState<string>("Resolved");
+  const [reportedBy, setReportedBy] = useState<string>("toloke.df@gmail.com");
   const [notes, setNotes] = useState<string>("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
 
-  // Fetch sites accessible to this user
+  // Fetch robots based on current site selection
   useEffect(() => {
-    fetch("/api/sites")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setSites(data);
-          if (!selectedSiteId && data.length > 0) {
-            setSelectedSiteId(data[0].id);
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // Fetch robots when selected site changes
-  useEffect(() => {
-    if (!selectedSiteId) return;
-    fetch(`/api/robots?siteId=${selectedSiteId}`)
+    const siteQuery = currentSiteId && currentSiteId !== "ALL" ? `?siteId=${currentSiteId}` : "";
+    fetch(`/api/robots${siteQuery}`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
           setRobots(data);
           if (data.length > 0) {
             setSelectedRobotId(data[0].id);
+            setTargetSiteId(data[0].siteId);
             setZone(data[0].lineZone || "");
           } else {
             setSelectedRobotId("");
+            setTargetSiteId(currentSiteId !== "ALL" ? currentSiteId : "");
             setZone("");
           }
         }
       })
       .catch(() => {});
-  }, [selectedSiteId]);
-
-  // When robot changes, auto-fill default zone
-  const handleRobotChange = (robotId: string) => {
-    setSelectedRobotId(robotId);
-    const r = robots.find((item) => item.id === robotId);
-    if (r?.lineZone) setZone(r.lineZone);
-  };
+  }, [currentSiteId]);
 
   // Recalculate recovered time when start time or duration changes
   useEffect(() => {
@@ -117,14 +109,18 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
     }
   }, [startTime, durationMinutes]);
 
+  const handleRobotChange = (robotId: string) => {
+    setSelectedRobotId(robotId);
+    const r = robots.find((item) => item.id === robotId);
+    if (r) {
+      if (r.lineZone) setZone(r.lineZone);
+      if (r.siteId) setTargetSiteId(r.siteId);
+    }
+  };
+
   const handleSelectCategory = (cat: string) => {
     setSelectedCategory(cat);
     setCustomCategory(cat);
-  };
-
-  const handleCategoryInputChange = (val: string) => {
-    setCustomCategory(val);
-    setSelectedCategory(val);
   };
 
   const handleSelectDowntime = (minutes: number | null) => {
@@ -133,10 +129,15 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
     }
   };
 
+  const handleSelectActionChip = (chip: string) => {
+    setActionTakenChip(chip);
+    setActionTakenText(chip);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSiteId || !selectedRobotId) {
-      setMessage({ type: "error", text: "Please select an AGV / Equipment." });
+    if (!selectedRobotId) {
+      setMessage({ type: "error", text: "Please select an Equipment / AGV." });
       return;
     }
 
@@ -150,44 +151,47 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
     setMessage(null);
 
     try {
-      // Construct full start datetime
       const startDateTime = new Date(`${date}T${startTime}:00`);
-      const recoveryDateTime = new Date(`${date}T${recoveredTime}:00`);
+      const recoveryDateTime = recoveredTime
+        ? new Date(`${date}T${recoveredTime}:00`)
+        : new Date(startDateTime.getTime() + durationMinutes * 60 * 1000);
 
       const res = await fetch("/api/short-stops", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          siteId: selectedSiteId,
+          siteId: targetSiteId || (currentSiteId !== "ALL" ? currentSiteId : availableSites[0]?.id),
           robotId: selectedRobotId,
           category: finalCategory,
           zone,
           specificLocation,
+          problemSummary,
+          description,
+          actionTaken: actionTakenText,
+          resolvedBy: reportedBy,
+          notes,
           startTime: startDateTime.toISOString(),
           recoveryTime: recoveryDateTime.toISOString(),
           durationMinutes,
-          resolvedBy,
-          recoveryAction,
-          notes,
         }),
       });
 
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to submit log");
+        const err = await res.json();
+        throw new Error(err.error || "Failed to submit short stop");
       }
 
-      setMessage({ type: "success", text: "Short Stop successfully logged to local database!" });
-      
-      // Auto-add new category to list if not present
+      setMessage({ type: "success", text: "Short stop successfully logged!" });
+
       if (!categoryList.includes(finalCategory)) {
         setCategoryList((prev) => [finalCategory, ...prev]);
       }
 
-      // Reset fields
+      // Reset specific fields
       setSpecificLocation("");
+      setProblemSummary("");
+      setDescription("");
       setNotes("");
-      if (onSuccess) onSuccess();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -196,17 +200,17 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-4xl mx-auto">
-      {/* Header */}
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-4xl mx-auto">
+      {/* Header matching Pasted image.png */}
       <div className="flex items-start justify-between pb-4 border-b border-slate-100 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Log Short Stop</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Log Short Stop</h1>
           <p className="text-xs text-slate-500 mt-0.5">Fields marked * are required</p>
         </div>
         <button
           type="button"
           onClick={() => setShowQrModal(true)}
-          className="flex items-center space-x-1.5 bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition"
+          className="flex items-center space-x-1.5 bg-[#c8e84a] hover:bg-[#b8da38] text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition"
         >
           <QrCode className="w-4 h-4" />
           <span>Scan QR</span>
@@ -230,67 +234,46 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Site Selection (if multiple sites available) */}
-        {sites.length > 1 && (
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Customer Site *
-            </label>
-            <select
-              value={selectedSiteId}
-              onChange={(e) => setSelectedSiteId(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
-            >
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.company ? `${s.company.name} - ${s.name}` : s.name} ({s.location})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Equipment / AGV & Zone Row */}
+      <form onSubmit={handleSubmit} className="space-y-5 text-xs text-slate-700">
+        {/* Equipment / AGV * and Zone */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block font-semibold text-slate-800 mb-1.5">
               Equipment / AGV *
             </label>
             <select
               value={selectedRobotId}
               onChange={(e) => handleRobotChange(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
             >
               <option value="">Select...</option>
               {robots.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.code} - {r.name || r.model} ({r.type})
+                  {r.code} {r.name ? `- ${r.name}` : ""}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block font-semibold text-slate-800 mb-1.5">
               Zone
             </label>
             <input
               type="text"
               value={zone}
               onChange={(e) => setZone(e.target.value)}
-              placeholder="e.g. Zone A - Stamping & Subassembly"
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Select..."
+              className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
             />
           </div>
         </div>
 
-        {/* Category * (Quick Chips & Autosuggest matching screenshot!) */}
+        {/* Category * */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-2">
+          <label className="block font-semibold text-slate-800 mb-1.5">
             Category *
           </label>
-          {/* 10 Quick Chips */}
           <div className="flex flex-wrap gap-2 mb-2.5">
             {categoryList.map((cat) => {
               const active = (customCategory || selectedCategory) === cat;
@@ -299,10 +282,10 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
                   type="button"
                   key={cat}
                   onClick={() => handleSelectCategory(cat)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${
+                  className={`text-xs px-3.5 py-1.5 rounded-full border transition font-medium ${
                     active
-                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   {cat}
@@ -311,61 +294,63 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
             })}
           </div>
 
-          {/* Autosuggest text box */}
           <input
             type="text"
             value={customCategory}
-            onChange={(e) => handleCategoryInputChange(e.target.value)}
+            onChange={(e) => {
+              setCustomCategory(e.target.value);
+              setSelectedCategory(e.target.value);
+            }}
             placeholder="Tap a button above or type here (autosuggest)..."
-            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
           />
           <p className="text-[11px] text-slate-400 mt-1">
             Start typing for suggestions - new categories are auto-saved to prevent duplicates.
           </p>
         </div>
 
-        {/* Date, Start Time, Recovered Time Row */}
+        {/* Date *, Start Time, Recovered */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block font-semibold text-slate-800 mb-1.5">
               Date *
             </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block font-semibold text-slate-800 mb-1.5">
               Start Time
             </label>
             <input
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block font-semibold text-slate-800 mb-1.5">
               Recovered
             </label>
             <input
               type="time"
               value={recoveredTime}
               onChange={(e) => setRecoveredTime(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
             />
           </div>
         </div>
 
-        {/* Downtime Duration Chips (matching screenshot!) */}
+        {/* Downtime Chips */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-2">
+          <label className="block font-semibold text-slate-800 mb-1.5">
             Downtime
           </label>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -376,7 +361,7 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
                   type="button"
                   key={chip.label}
                   onClick={() => handleSelectDowntime(chip.minutes)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${
+                  className={`text-xs px-3.5 py-1.5 rounded-full border transition font-medium ${
                     active
                       ? "bg-slate-900 text-white border-slate-900"
                       : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
@@ -396,94 +381,163 @@ export default function LogShortStopForm({ initialSiteId, onSuccess }: LogShortS
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(parseFloat(e.target.value) || 0)}
               placeholder="Tap a chip above, or type minutes here"
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
             />
-            <span className="text-xs text-slate-500 shrink-0 font-medium">Minutes</span>
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
             Recovered time auto-fills based on Start time + duration.
           </p>
         </div>
 
-        {/* Specific Location (matching screenshot!) */}
+        {/* Specific Location */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
+          <label className="block font-semibold text-slate-800 mb-1.5">
             Specific Location
           </label>
           <input
             type="text"
             value={specificLocation}
             onChange={(e) => setSpecificLocation(e.target.value)}
-            placeholder="e.g. PIT DOCK CONSTRUCTION BHR APG BR-02"
-            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            placeholder="PIT DOCK CONSTRUCTION BHR APG BR-02"
+            className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
           />
         </div>
 
-        {/* Recovery Action & Resolution Notes */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Recovery Action Taken
-            </label>
-            <select
-              value={recoveryAction}
-              onChange={(e) => setRecoveryAction(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="Auto Resume">Auto Resume</option>
-              <option value="Operator Reset">Operator Reset (On-board button)</option>
-              <option value="E-Stop Release">E-Stop Release & Reset</option>
-              <option value="Manual Teach Pendant">Manual Teach Pendant Relocation</option>
-              <option value="Controller Reboot">IPC / Controller Reboot</option>
-            </select>
-          </div>
+        {/* Brief problem summary (Pasted image.png reference) */}
+        <div>
+          <label className="block font-semibold text-slate-800 mb-1.5">
+            Brief problem summary
+          </label>
+          <input
+            type="text"
+            value={problemSummary}
+            onChange={(e) => setProblemSummary(e.target.value)}
+            placeholder="Brief problem summary"
+            className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
+          />
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Logged / Resolved By
-            </label>
+        {/* Description (Pasted image.png reference) */}
+        <div>
+          <label className="block font-semibold text-slate-800 mb-1.5">
+            Description
+          </label>
+          <textarea
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What happened? Root cause if known..."
+            className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
+          />
+        </div>
+
+        {/* Action Taken (optional - leave blank if you only reported) */}
+        <div>
+          <label className="block font-semibold text-slate-800 mb-1.5">
+            Action Taken <span className="font-normal text-slate-400">(optional - leave blank if you only reported)</span>
+          </label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {ACTION_TAKEN_CHIPS.map((chip) => {
+              const active = actionTakenChip === chip;
+              return (
+                <button
+                  type="button"
+                  key={chip}
+                  onClick={() => handleSelectActionChip(chip)}
+                  className={`text-xs px-3.5 py-1.5 rounded-full border transition font-medium ${
+                    active
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  {chip}
+                </button>
+              );
+            })}
+          </div>
+          <textarea
+            rows={2}
+            value={actionTakenText}
+            onChange={(e) => setActionTakenText(e.target.value)}
+            className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
+          />
+        </div>
+
+        {/* Reported By */}
+        <div>
+          <label className="block font-semibold text-slate-800 mb-1.5">
+            Reported By
+          </label>
+          <input
+            type="text"
+            value={reportedBy}
+            onChange={(e) => setReportedBy(e.target.value)}
+            className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
+          />
+        </div>
+
+        {/* Note */}
+        <div>
+          <label className="block font-semibold text-slate-800 mb-1.5">
+            Note
+          </label>
+          <input
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Additional notes"
+            className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
+          />
+        </div>
+
+        {/* Photo */}
+        <div>
+          <label className="block font-semibold text-slate-800 mb-1.5">
+            Photo
+          </label>
+          <div className="flex items-center gap-3">
             <input
-              type="text"
-              value={resolvedBy}
-              onChange={(e) => setResolvedBy(e.target.value)}
-              placeholder="Operator / Shift Lead name"
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhotoFile(e.target.files ? e.target.files[0] : null)}
+              className="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-slate-300 file:text-xs file:font-semibold file:bg-slate-100 hover:file:bg-slate-200 cursor-pointer"
             />
           </div>
         </div>
 
-        {/* Submit button */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+        {/* Submit Short Stop Full-Width Lime Green Button */}
+        <div className="pt-4">
           <button
             type="submit"
             disabled={submitting}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-6 py-2.5 rounded-lg shadow transition disabled:opacity-50 flex items-center gap-1.5"
+            className="w-full bg-[#c8e84a] hover:bg-[#b8da38] text-slate-900 font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition disabled:opacity-50"
           >
-            {submitting ? "Logging Stop..." : "Save Short Stop Log"}
+            {submitting ? "Submitting..." : "Submit Short Stop"}
           </button>
         </div>
       </form>
 
-      {/* QR Code Scanner Dialog (Simulation) */}
+      {/* QR Code Scanner Simulation Modal */}
       {showQrModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-5 text-center">
-            <QrCode className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-slate-800">Scan Robot QR Code</h3>
+          <div className="bg-white rounded-xl max-w-sm w-full p-5 text-center shadow-xl border border-slate-200">
+            <QrCode className="w-12 h-12 text-slate-800 mx-auto mb-3" />
+            <h3 className="text-sm font-bold text-slate-900">Scan Robot QR Code</h3>
             <p className="text-xs text-slate-500 mt-1 mb-4">
               Point camera at the QR code plate mounted on the AGV/ARV chassis.
             </p>
-            <div className="space-y-1.5 mb-4">
-              {robots.slice(0, 4).map((r) => (
+            <div className="space-y-1.5 mb-4 max-h-48 overflow-y-auto">
+              {robots.map((r) => (
                 <button
                   key={r.id}
                   onClick={() => {
                     handleRobotChange(r.id);
                     setShowQrModal(false);
                   }}
-                  className="w-full py-1.5 px-3 rounded bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-xs font-medium text-slate-700 transition"
+                  className="w-full py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition border border-slate-200 text-left flex items-center justify-between"
                 >
-                  Simulate Scan: [{r.code}] {r.name || r.model}
+                  <span>{r.code}</span>
+                  <span className="text-[10px] text-slate-400">{r.type}</span>
                 </button>
               ))}
             </div>

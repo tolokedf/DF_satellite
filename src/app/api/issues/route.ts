@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const where: any = {};
     if (siteFilter) where.siteId = siteFilter;
     if (projectId) where.projectId = projectId;
-    if (siteId) where.siteId = siteId;
+    if (siteId && siteId !== "ALL") where.siteId = siteId;
 
     const issues = await prisma.issue.findMany({
       where,

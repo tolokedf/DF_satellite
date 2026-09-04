@@ -10,12 +10,26 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const siteId = searchParams.get("siteId");
     const robotId = searchParams.get("robotId");
-    const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const category = searchParams.get("category");
+    const zone = searchParams.get("zone");
+    const source = searchParams.get("source");
+    const fromDate = searchParams.get("from");
+    const toDate = searchParams.get("to");
+    const limit = parseInt(searchParams.get("limit") || "200", 10);
 
     const where: any = {};
     if (siteFilter) where.siteId = siteFilter;
-    if (siteId) where.siteId = siteId;
-    if (robotId) where.robotId = robotId;
+    if (siteId && siteId !== "ALL") where.siteId = siteId;
+    if (robotId && robotId !== "ALL") where.robotId = robotId;
+    if (category && category !== "ALL" && category !== "All") where.category = category;
+    if (zone && zone !== "ALL" && zone !== "All") where.zone = zone;
+    if (source && source !== "ALL" && source !== "All" && source !== "Both") where.source = source;
+
+    if (fromDate || toDate) {
+      where.startTime = {};
+      if (fromDate) where.startTime.gte = new Date(fromDate);
+      if (toDate) where.startTime.lte = new Date(toDate);
+    }
 
     const shortStops = await prisma.shortStopLog.findMany({
       where,
@@ -58,11 +72,16 @@ export async function POST(req: Request) {
         category: body.category || "General Stop",
         zone: body.zone || null,
         specificLocation: body.specificLocation || null,
+        problemSummary: body.problemSummary || null,
+        description: body.description || null,
+        actionTaken: body.actionTaken || null,
+        photoUrl: body.photoUrl || null,
+        source: body.source || "Manual",
         startTime,
         recoveryTime,
         durationMinutes,
         resolvedBy: body.resolvedBy || user.name,
-        recoveryAction: body.recoveryAction || "Operator Reset",
+        recoveryAction: body.recoveryAction || body.actionTaken || "Operator Reset",
         notes: body.notes || null,
       },
       include: {

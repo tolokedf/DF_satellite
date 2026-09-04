@@ -25,6 +25,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
     if (!user) return null;
 
+    // Single active device session enforcement:
+    // If user has an active sessionToken, verify that this device's token matches.
+    // If user logged in on another device, user.sessionToken will have changed, invalidating this session.
+    if (user.sessionToken && data.sessionToken && user.sessionToken !== data.sessionToken) {
+      return null;
+    }
+
     let assignedSiteIds: string[] = [];
     try {
       assignedSiteIds = JSON.parse(user.assignedSiteIds || "[]");
@@ -42,6 +49,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       companyName: user.company?.name,
       assignedSiteIds,
       googleLinked: user.googleLinked,
+      sessionToken: user.sessionToken || undefined,
     };
   } catch (err) {
     return null;

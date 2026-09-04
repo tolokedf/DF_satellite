@@ -9,6 +9,7 @@ async function main() {
   // Clean existing data
   await prisma.dailyReport.deleteMany();
   await prisma.meetingMinute.deleteMany();
+  await prisma.milestone.deleteMany();
   await prisma.shortStopLog.deleteMany();
   await prisma.issue.deleteMany();
   await prisma.actionItem.deleteMany();
@@ -146,21 +147,36 @@ async function main() {
     peroduaRobots.push(robot);
   }
 
-  // ST Muar: 6 mixed AGV/AMR
-  const stMuarRobots = [];
-  for (let i = 1; i <= 6; i++) {
-    const isArv = i > 4;
-    const code = `${isArv ? "ARV" : "AGV"}-${i.toString().padStart(2, "0")}`;
+  // ST Muar: Cleanroom AGVs (1-13) and ARVs (1-10) matching reference screenshots
+  const stMuarRobots: any[] = [];
+  for (let i = 1; i <= 13; i++) {
+    const code = `AGV ${i}`;
     const robot = await prisma.robot.create({
       data: {
         siteId: stMuarSite.id,
         code,
-        name: `${isArv ? "Cleanroom ARV" : "Substrate Transfer AGV"} #${i}`,
-        model: isArv ? "ARV Clean-50" : "Titan T-300",
-        type: isArv ? "ARV" : "AGV",
-        status: i === 1 ? "SHORT_STOP" : "RUNNING",
-        lineZone: i <= 3 ? "Cleanroom Zone 1 (Photolithography)" : "Zone 2 (Assembly & Test)",
+        name: `Cleanroom Transfer AGV #${i}`,
+        model: "Titan T-300",
+        type: "AGV",
+        status: i === 2 ? "SHORT_STOP" : "RUNNING",
+        lineZone: i % 2 === 0 ? "C" : "F",
         ipAddress: `192.168.40.${100 + i}`,
+      },
+    });
+    stMuarRobots.push(robot);
+  }
+  for (let i = 1; i <= 10; i++) {
+    const code = `ARV ${i}`;
+    const robot = await prisma.robot.create({
+      data: {
+        siteId: stMuarSite.id,
+        code,
+        name: `Cleanroom Cassette ARV #${i}`,
+        model: "ARV Clean-50",
+        type: "ARV",
+        status: i === 8 ? "SHORT_STOP" : "RUNNING",
+        lineZone: i % 2 === 0 ? "F" : "C",
+        ipAddress: `192.168.40.${120 + i}`,
       },
     });
     stMuarRobots.push(robot);
@@ -169,85 +185,20 @@ async function main() {
   console.log(`Created ${protonJohorRobots.length + protonPenangRobots.length + peroduaRobots.length + stMuarRobots.length} robots across 4 sites.`);
 
   // 4. Users & Access Control
-  // Admin
+  // Only ONE admin account with password "df"
   await prisma.user.create({
     data: {
       username: "admin",
       email: "admin@dfautomation.com",
-      passwordHash: hash("admin123"),
+      passwordHash: hash("df"),
       name: "DF System Administrator",
       role: "ADMIN",
-      googleLinked: true,
+      googleLinked: false,
       assignedSiteIds: JSON.stringify([protonJohor.id, protonPenang.id, peroduaRawang.id, stMuarSite.id]),
     },
   });
 
-  // Engineer
-  await prisma.user.create({
-    data: {
-      username: "engineer",
-      email: "engineer.lead@gmail.com",
-      passwordHash: hash("eng123"),
-      name: "Senior Field Robotics Engineer",
-      role: "ENGINEER",
-      googleLinked: true,
-      assignedSiteIds: JSON.stringify([protonJohor.id, protonPenang.id, peroduaRawang.id, stMuarSite.id]),
-    },
-  });
-
-  // Intern
-  await prisma.user.create({
-    data: {
-      username: "intern",
-      email: "intern@dfautomation.com",
-      passwordHash: hash("intern123"),
-      name: "Field Deployment Intern (Ahmad)",
-      role: "ENGINEER",
-      assignedSiteIds: JSON.stringify([protonJohor.id, peroduaRawang.id]),
-    },
-  });
-
-  // Customers
-  // Proton Customer: Can ONLY see Proton Johor & Proton Penang sites!
-  await prisma.user.create({
-    data: {
-      username: "proton",
-      email: "ops@proton.com",
-      passwordHash: hash("proton123"),
-      name: "Proton Operations Team",
-      role: "CUSTOMER",
-      companyId: proton.id,
-      assignedSiteIds: JSON.stringify([protonJohor.id, protonPenang.id]),
-    },
-  });
-
-  // Perodua Customer: Can ONLY see Perodua Rawang site!
-  await prisma.user.create({
-    data: {
-      username: "perodua",
-      email: "logistics@perodua.com.my",
-      passwordHash: hash("perodua123"),
-      name: "Perodua Factory Automation",
-      role: "CUSTOMER",
-      companyId: perodua.id,
-      assignedSiteIds: JSON.stringify([peroduaRawang.id]),
-    },
-  });
-
-  // ST Muar Customer: Can ONLY see ST Muar site!
-  await prisma.user.create({
-    data: {
-      username: "stmuar",
-      email: "site.lead@st.com",
-      passwordHash: hash("stmuar123"),
-      name: "ST Muar Automation Eng",
-      role: "CUSTOMER",
-      companyId: stMuar.id,
-      assignedSiteIds: JSON.stringify([stMuarSite.id]),
-    },
-  });
-
-  console.log("Created users with scoped multi-tenant permissions.");
+  console.log("Created single admin account (username: 'admin', password: 'df').");
 
   // 5. Field Deployment Projects (Standardized template for Engineers)
   const projProton = await prisma.project.create({
@@ -505,26 +456,209 @@ async function main() {
     });
   }
 
-  // Populate short stops for ST Muar
-  for (let i = 0; i < 10; i++) {
-    const stopTime = new Date(now.getTime() - i * 18 * 3600 * 1000);
-    const duration = [1, 5, 3, 10][i % 4];
-    const robot = stMuarRobots[i % stMuarRobots.length];
+  // Populate short stops for ST Muar matching reference screenshots
+  const stMuarStopsData = [
+    {
+      robotCode: "AGV 13",
+      zone: "F",
+      category: "Stopper not going down",
+      specificLocation: "Ur output",
+      problemSummary: "Stopper not close",
+      description: "",
+      durationMinutes: 2,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Resolved",
+      startTime: new Date("2026-08-26T08:21:00"),
+    },
+    {
+      robotCode: "AGV 10",
+      zone: "C",
+      category: "Livox Malfunction",
+      specificLocation: "Zc",
+      problemSummary: "Keep moving without livox sensor...",
+      description: "",
+      durationMinutes: 5,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Reset / power cycle",
+      startTime: new Date("2026-08-26T03:53:00"),
+    },
+    {
+      robotCode: "AGV 6",
+      zone: "F",
+      category: "Map/task Template Issue",
+      specificLocation: "Zf rgv buffer 3",
+      problemSummary: "Popup noti sensor error without p...",
+      description: "",
+      durationMinutes: 4,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Resolved",
+      startTime: new Date("2026-08-26T03:49:00"),
+    },
+    {
+      robotCode: "AGV 13",
+      zone: "F",
+      category: "Map/task Template Issue",
+      specificLocation: "Zf Rgv buffer 3",
+      problemSummary: "Popup noti sensor error without p...",
+      description: "",
+      durationMinutes: 3,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Resolved",
+      startTime: new Date("2026-08-26T03:48:00"),
+    },
+    {
+      robotCode: "AGV 13",
+      zone: "F",
+      category: "Machine Issue",
+      specificLocation: "Zf rgv buffer 2",
+      problemSummary: "Ready machine not drop",
+      description: "Agv already give complete",
+      durationMinutes: 10,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Restarted AGV",
+      startTime: new Date("2026-08-25T21:34:00"),
+    },
+    {
+      robotCode: "AGV 13",
+      zone: "F",
+      category: "Machine Issue",
+      specificLocation: "Ur out",
+      problemSummary: "Ready machine not drop",
+      description: "Agv already give complete",
+      durationMinutes: 8,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Restarted AGV",
+      startTime: new Date("2026-08-25T21:32:00"),
+    },
+    {
+      robotCode: "ARV 10",
+      zone: "F",
+      category: "Gripper Issue",
+      specificLocation: "Smart rack 5",
+      problemSummary: "Mushroom head issue",
+      description: "Gripper can't grip the mushroom hea...",
+      durationMinutes: 15,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Cleared obstacle",
+      startTime: new Date("2026-08-25T11:13:00"),
+    },
+    {
+      robotCode: "ARV 8",
+      zone: "F",
+      category: "Sensor Issue",
+      specificLocation: "Zf",
+      problemSummary: "Sensor broken",
+      description: "",
+      durationMinutes: 20,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Pending engineering",
+      startTime: new Date("2026-07-28T22:50:00"),
+    },
+    {
+      robotCode: "AGV 2",
+      zone: "C",
+      category: "Panel Transfer Stuck",
+      specificLocation: "mold 2 output",
+      problemSummary: "panel transfer stuck",
+      description: "port 2 panel stuck time unload ( stuck...",
+      durationMinutes: 12,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Resolved",
+      startTime: new Date("2026-07-28T22:25:00"),
+    },
+    {
+      robotCode: "AGV 2",
+      zone: "C",
+      category: "Panel Transfer Stuck",
+      specificLocation: "loadport 3",
+      problemSummary: "panel transfer stuck",
+      description: "port 1 panel stuck time unload ( stuck...",
+      durationMinutes: 14,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Resolved",
+      startTime: new Date("2026-07-28T22:23:00"),
+    },
+    {
+      robotCode: "AGV 2",
+      zone: "C",
+      category: "Docking",
+      specificLocation: "bugfer 60 slot",
+      problemSummary: "docking issue",
+      description: "agv terlajak ke depan and panel stuc...",
+      durationMinutes: 18,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Resolved",
+      startTime: new Date("2026-07-28T22:17:00"),
+    },
+    {
+      robotCode: "AGV 1",
+      zone: "C",
+      category: "Panel Transfer Stuck",
+      specificLocation: "BUFFER 60 SLOT",
+      problemSummary: "PANEL TRANSFER STUCK",
+      description: "port 1 panel stuck time load",
+      durationMinutes: 25,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Resolved",
+      startTime: new Date("2026-07-27T22:47:00"),
+    },
+    {
+      robotCode: "ARV 1",
+      zone: "C",
+      category: "Map Jump",
+      specificLocation: "Zc entry door to mold",
+      problemSummary: "LiDAR localization jump",
+      description: "Relocalization needed after reflective surface glare",
+      durationMinutes: 15,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Restarted AGV",
+      startTime: new Date("2026-07-04T14:20:00"),
+    },
+    {
+      robotCode: "ARV 7",
+      zone: "C",
+      category: "Traffic",
+      specificLocation: "Mold",
+      problemSummary: "Traffic conflict at junction",
+      description: "Priority queue deadlock cleared by operator",
+      durationMinutes: 20,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Cleared obstacle",
+      startTime: new Date("2026-07-10T10:15:00"),
+    },
+    {
+      robotCode: "AGV 1",
+      zone: "C",
+      category: "Operation Issue",
+      specificLocation: "Cleanroom Air Shower 2",
+      problemSummary: "Door interlock timeout",
+      description: "Air shower door didn't open in time",
+      durationMinutes: 5,
+      resolvedBy: "toloke.df@gmail.com",
+      actionTaken: "Operator Reset",
+      startTime: new Date("2026-08-20T16:40:00"),
+    }
+  ];
 
+  for (const item of stMuarStopsData) {
+    const robot = stMuarRobots.find((r) => r.code === item.robotCode) || stMuarRobots[0];
     await prisma.shortStopLog.create({
       data: {
         siteId: stMuarSite.id,
         robotId: robot.id,
-        category: categories[i % categories.length],
-        zone: robot.lineZone || "Cleanroom Zone 1",
-        specificLocation: `PIT DOCK CONSTRUCTION BHR APG BR-0${(i % 3) + 1}`,
-        startTime: stopTime,
-        recoveryTime: new Date(stopTime.getTime() + duration * 60 * 1000),
-        durationMinutes: duration,
-        resolvedBy: "Operator Reset",
-        recoveryAction: "Operator Reset",
-        notes: "Cleanroom standard procedure followed.",
-        createdAt: stopTime,
+        category: item.category,
+        zone: item.zone,
+        specificLocation: item.specificLocation,
+        problemSummary: item.problemSummary,
+        description: item.description,
+        actionTaken: item.actionTaken,
+        durationMinutes: item.durationMinutes,
+        startTime: item.startTime,
+        recoveryTime: new Date(item.startTime.getTime() + item.durationMinutes * 60 * 1000),
+        resolvedBy: item.resolvedBy,
+        recoveryAction: item.actionTaken,
+        source: "Manual",
+        createdAt: item.startTime,
       },
     });
   }
@@ -554,6 +688,75 @@ async function main() {
       nextPlan: "• Commission AGV-06 through AGV-10 payload towing attachments.\n• Finalize interlock communication with Siemens S7-1500 line PLC.",
       driveLink: "https://drive.google.com/open?id=dar-proton-20260903",
     },
+  });
+
+  // 11. Milestones (Engineer Role)
+  await prisma.milestone.createMany({
+    data: [
+      {
+        name: "Factory Acceptance Test (FAT)",
+        assignee: "engineer 1",
+        dueDate: new Date("2026-08-20T00:00:00.000Z"),
+        actualCompletionDate: new Date("2026-08-20T00:00:00.000Z"),
+        status: "COMPLETED",
+        projectId: projProton.id,
+        notes: "FAT completed and approved with customer QA.",
+      },
+      {
+        name: "Site Delivery & Mechanical Rigging",
+        assignee: "Ir. Razak",
+        dueDate: new Date("2026-08-25T00:00:00.000Z"),
+        actualCompletionDate: new Date("2026-08-27T00:00:00.000Z"),
+        status: "COMPLETED",
+        projectId: projProton.id,
+        notes: "Dock crane availability delayed delivery by 2 days.",
+      },
+      {
+        name: "AGV Magnetic & Laser SLAM Mapping",
+        assignee: "engineer 1",
+        dueDate: new Date("2026-08-30T00:00:00.000Z"),
+        actualCompletionDate: new Date("2026-09-02T00:00:00.000Z"),
+        status: "COMPLETED",
+        projectId: projProton.id,
+        notes: "SLAM grid re-calibrated after plant layout update.",
+      },
+      {
+        name: "PLC & Conveyor Handshake Interlock",
+        assignee: "Chong W.K.",
+        dueDate: new Date("2026-09-02T00:00:00.000Z"),
+        actualCompletionDate: null,
+        status: "DELAYED",
+        projectId: projPerodua.id,
+        notes: "Waiting for Siemens PLC IO card replacement from customer.",
+      },
+      {
+        name: "Fleet Manager / NavWiz Route Configuration",
+        assignee: "engineer 1",
+        dueDate: new Date("2026-09-08T00:00:00.000Z"),
+        actualCompletionDate: null,
+        status: "IN_PROGRESS",
+        projectId: projSTMuar.id,
+        notes: "Configuring multi-AGV intersection priority and deadlock prevention.",
+      },
+      {
+        name: "Site Acceptance Test (SAT)",
+        assignee: "Ir. Razak",
+        dueDate: new Date("2026-09-15T00:00:00.000Z"),
+        actualCompletionDate: null,
+        status: "IN_PROGRESS",
+        projectId: projProton.id,
+        notes: "48-hour continuous payload endurance test scheduled.",
+      },
+      {
+        name: "SOP Training & Customer Handover",
+        assignee: "Nurul Aina",
+        dueDate: new Date("2026-09-22T00:00:00.000Z"),
+        actualCompletionDate: null,
+        status: "IN_PROGRESS",
+        projectId: projPenang.id,
+        notes: "Preparing training manuals and operator emergency checklists.",
+      },
+    ],
   });
 
   console.log("✅ Seeding completed successfully!");

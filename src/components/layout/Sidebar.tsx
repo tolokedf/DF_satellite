@@ -1,188 +1,310 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  PlusCircle, 
+  Plus, 
   List, 
-  BarChart3, 
+  Target, 
+  BarChart2, 
   QrCode, 
   Settings, 
-  FolderKanban, 
-  Bot, 
-  AlertTriangle, 
-  Users, 
-  FileText, 
-  ShieldCheck, 
+  AlertTriangle,
+  ChevronLeft,
   ChevronRight,
-  Database,
-  Calendar,
-  Layers
+  ShieldAlert
 } from "lucide-react";
 
 interface SidebarProps {
   user: any;
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
 
-  const isCustomer = user?.role === "CUSTOMER";
-  const isEngineer = user?.role === "ENGINEER";
-  const isAdmin = user?.role === "ADMIN";
+  const isActive = (href: string) => {
+    if (href === "/form" || href === "/portal/log-stop") {
+      return pathname === "/form" || pathname === "/portal/log-stop";
+    }
+    if (href === "/feed" || href === "/portal/feed") {
+      return pathname === "/feed" || pathname === "/portal/feed";
+    }
+    if (href === "/focus" || href === "/portal/focus") {
+      return pathname === "/focus" || pathname === "/portal/focus";
+    }
+    if (href === "/analytics" || href === "/portal/analytics") {
+      return pathname === "/analytics" || pathname === "/portal/analytics";
+    }
+    if (href === "/qr" || href === "/portal/qr") {
+      return pathname === "/qr" || pathname === "/portal/qr";
+    }
+    if (href === "/settings" || href === "/portal/settings") {
+      return pathname === "/settings" || pathname === "/portal/settings";
+    }
+    if (href === "/portal/log-issue") {
+      return pathname === "/portal/log-issue";
+    }
+    if (href === "/portal/issues" || href === "/issues") {
+      return pathname === "/portal/issues" || pathname === "/issues";
+    }
+    return pathname === href;
+  };
 
-  const linkClass = (href: string) => {
-    const active = pathname === href || pathname.startsWith(href + "/");
+  const navItemClass = (href: string) => {
+    const active = isActive(href);
     return `flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
       active
-        ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600 pl-2"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+        ? "bg-slate-100 text-slate-900 font-semibold"
+        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
     }`;
   };
 
+  // The left bar is second level: only shown for the "issue list" top bar section
+  // When clicking "task overview" or "current status" (or admin), it will not show the left bar
+  const isIssueListSection = !pathname.startsWith("/current-status") &&
+                             !pathname.startsWith("/portfolio") &&
+                             !pathname.startsWith("/projects") &&
+                             !pathname.startsWith("/admin") &&
+                             !pathname.startsWith("/my-role");
+
+  if (!isIssueListSection) {
+    return null;
+  }
+
   return (
-    <aside className="w-56 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 min-h-[calc(100vh-3.5rem)] select-none">
-      <div className="p-3 space-y-6">
-        {/* CUSTOMER NAVIGATION (Mirrors screenshot strictly) */}
-        {isCustomer && (
-          <>
-            {/* Short Stops Section */}
-            <div>
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Short Stops
-              </div>
-              <div className="space-y-0.5">
-                <Link href="/portal/log-stop" className={linkClass("/portal/log-stop")}>
-                  <PlusCircle className="w-4 h-4 text-blue-600" />
-                  <span>Log Stop</span>
-                </Link>
-                <Link href="/portal/feed" className={linkClass("/portal/feed")}>
-                  <List className="w-4 h-4" />
-                  <span>Feed</span>
-                </Link>
-                <Link href="/portal/analytics" className={linkClass("/portal/analytics")}>
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Analytics</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Issue Tracker Section */}
-            <div>
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Issue Tracker
-              </div>
-              <div className="space-y-0.5">
-                <Link href="/portal/log-issue" className={linkClass("/portal/log-issue")}>
-                  <PlusCircle className="w-4 h-4 text-rose-600" />
-                  <span>Log Issue</span>
-                </Link>
-                <Link href="/portal/issues" className={linkClass("/portal/issues")}>
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>Issues</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Fleet Section */}
-            <div>
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Site Equipment
-              </div>
-              <div className="space-y-0.5">
-                <Link href="/portal/fleet" className={linkClass("/portal/fleet")}>
-                  <Bot className="w-4 h-4" />
-                  <span>My Site Fleet</span>
-                </Link>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ENGINEER & ADMIN NAVIGATION (Asana Portfolio + Field Deployment) */}
-        {(isEngineer || isAdmin) && (
-          <>
-            {/* Field Deployment Management */}
-            <div>
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Field Deployments
-              </div>
-              <div className="space-y-0.5">
-                <Link href="/portfolio" className={linkClass("/portfolio")}>
-                  <FolderKanban className="w-4 h-4 text-blue-600" />
-                  <span>Portfolio Overview</span>
-                </Link>
-                <Link href="/robots" className={linkClass("/robots")}>
-                  <Bot className="w-4 h-4" />
-                  <span>Robots & Fleet</span>
-                </Link>
-                <Link href="/short-stops" className={linkClass("/short-stops")}>
-                  <List className="w-4 h-4" />
-                  <span>Short Stop Feed</span>
-                </Link>
-                <Link href="/issues" className={linkClass("/issues")}>
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>Global Issues</span>
-                </Link>
-                <Link href="/analytics" className={linkClass("/analytics")}>
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Fleet Analytics</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Customer Simulation / Rapid Form */}
-            <div>
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Customer View
-              </div>
-              <div className="space-y-0.5">
-                <Link href="/portal/log-stop" className={linkClass("/portal/log-stop")}>
-                  <PlusCircle className="w-4 h-4 text-emerald-600" />
-                  <span>Customer Log Stop</span>
-                </Link>
-                <Link href="/portal/log-issue" className={linkClass("/portal/log-issue")}>
-                  <AlertTriangle className="w-4 h-4 text-rose-500" />
-                  <span>Customer Log Issue</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Admin Console */}
-            {isAdmin && (
-              <div>
-                <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-purple-600 font-semibold mb-1.5">
-                  Administration
-                </div>
-                <div className="space-y-0.5">
-                  <Link href="/admin" className={linkClass("/admin")}>
-                    <ShieldCheck className="w-4 h-4 text-purple-600" />
-                    <span>User & Site Access</span>
-                  </Link>
-                  <Link href="/admin/database" className={linkClass("/admin/database")}>
-                    <Database className="w-4 h-4 text-purple-600" />
-                    <span>DB Portability</span>
-                  </Link>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+    <>
+      {/* Mobile Sub-Navigation Pill Bar for Issue List (< md) */}
+      <div className="md:hidden w-full bg-white border-b border-slate-200 px-2.5 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.03)] shrink-0 select-none">
+        <Link
+          href="/form"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/form") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <Plus className="w-3 h-3" />
+          <span>Log Stop</span>
+        </Link>
+        <Link
+          href="/feed"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/feed") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <List className="w-3 h-3" />
+          <span>Feed</span>
+        </Link>
+        <Link
+          href="/focus"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/focus") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <Target className="w-3 h-3" />
+          <span>Focus Board</span>
+        </Link>
+        <Link
+          href="/analytics"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/analytics") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <BarChart2 className="w-3 h-3" />
+          <span>Analytics</span>
+        </Link>
+        <Link
+          href="/qr"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/qr") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <QrCode className="w-3 h-3" />
+          <span>QR Codes</span>
+        </Link>
+        <Link
+          href="/portal/log-issue"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/portal/log-issue") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <Plus className="w-3 h-3" />
+          <span>Log Issue</span>
+        </Link>
+        <Link
+          href="/portal/issues"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/portal/issues") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <AlertTriangle className="w-3 h-3" />
+          <span>Issues</span>
+        </Link>
+        <Link
+          href="/settings"
+          className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+            isActive("/settings") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <Settings className="w-3 h-3" />
+          <span>Settings</span>
+        </Link>
       </div>
 
-      {/* Footer Info */}
-      <div className="p-3 border-t border-slate-200 text-[11px] text-slate-400">
-        <div className="flex items-center justify-between">
-          <span>DF Satellite v1.0</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-500" title="Local DB Connected"></span>
+      {/* Desktop Left Sidebar (md and up) */}
+      <aside
+        className={`hidden md:flex ${
+          collapsed ? "w-16" : "w-52"
+        } bg-white border-r border-slate-200 flex-col justify-between shrink-0 min-h-[calc(100vh-3.5rem)] select-none transition-all duration-200`}
+      >
+      <div className="p-3 space-y-6">
+        {/* SHORT STOPS Group */}
+        <div>
+          {!collapsed && (
+            <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+              Short Stops
+            </div>
+          )}
+          <div className="space-y-0.5">
+            <Link
+              href="/form"
+              className={navItemClass("/form")}
+              title="Log Stop"
+            >
+              <Plus className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Log Stop</span>}
+            </Link>
+
+            <Link
+              href="/feed"
+              className={navItemClass("/feed")}
+              title="Feed"
+            >
+              <List className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Feed</span>}
+            </Link>
+
+            <Link
+              href="/focus"
+              className={navItemClass("/focus")}
+              title="Focus Board"
+            >
+              <Target className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Focus Board</span>}
+            </Link>
+
+            <Link
+              href="/analytics"
+              className={navItemClass("/analytics")}
+              title="Analytics"
+            >
+              <BarChart2 className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Analytics</span>}
+            </Link>
+
+            <Link
+              href="/qr"
+              className={navItemClass("/qr")}
+              title="QR Codes"
+            >
+              <QrCode className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>QR Codes</span>}
+            </Link>
+
+            <Link
+              href="/settings"
+              className={navItemClass("/settings")}
+              title="Settings"
+            >
+              <Settings className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Settings</span>}
+            </Link>
+          </div>
         </div>
-        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-          DB: SQLite (Decoupled)
+
+        {/* ISSUE TRACKER Group */}
+        <div>
+          {!collapsed && (
+            <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+              Issue Tracker
+            </div>
+          )}
+          <div className="space-y-0.5">
+            <Link
+              href="/portal/log-issue"
+              className={navItemClass("/portal/log-issue")}
+              title="Log Issue"
+            >
+              <Plus className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Log Issue</span>}
+            </Link>
+
+            <Link
+              href="/portal/issues"
+              className={navItemClass("/portal/issues")}
+              title="Issues"
+            >
+              <AlertTriangle className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Issues</span>}
+            </Link>
+
+            <Link
+              href="/focus?mode=issues"
+              className={navItemClass("/focus?mode=issues")}
+              title="Focus Board"
+            >
+              <Target className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Focus Board</span>}
+            </Link>
+
+            <Link
+              href="/analytics?mode=issues"
+              className={navItemClass("/analytics?mode=issues")}
+              title="Analytics"
+            >
+              <BarChart2 className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Analytics</span>}
+            </Link>
+
+            <Link
+              href="/qr?mode=issues"
+              className={navItemClass("/qr?mode=issues")}
+              title="QR Codes"
+            >
+              <QrCode className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>QR Codes</span>}
+            </Link>
+
+            <Link
+              href="/settings?mode=issues"
+              className={navItemClass("/settings?mode=issues")}
+              title="Settings"
+            >
+              <Settings className="w-4 h-4 shrink-0 text-slate-700" />
+              {!collapsed && <span>Settings</span>}
+            </Link>
+          </div>
         </div>
+      </div>
+
+      {/* Collapse button matching screenshot: << Collapse */}
+      <div className="p-3 border-t border-slate-100">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center space-x-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition w-full py-1.5 px-2 rounded-lg hover:bg-slate-50"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4 mx-auto" />
+          ) : (
+            <>
+              <span className="text-slate-400 font-bold">&laquo;</span>
+              <span>Collapse</span>
+            </>
+          )}
+        </button>
       </div>
     </aside>
+    </>
   );
 }

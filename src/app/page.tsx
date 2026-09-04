@@ -3,11 +3,8 @@ import { getSessionUser } from "@/lib/auth";
 
 export default async function HomePage() {
   const user = await getSessionUser();
-
-  if (user?.role === "CUSTOMER") {
-    redirect("/portal/log-stop");
+  if (!user) {
+    redirect("/login");
   }
-
-  // Default to portfolio overview
-  redirect("/portfolio");
+  redirect("/feed");
 }

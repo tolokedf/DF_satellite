@@ -7,36 +7,38 @@ export async function POST(req: Request) {
   try {
     const { username, password, googleAuth } = await req.json();
 
-    // Support fast demo switch or Google sign-in
-    let user;
     if (googleAuth) {
-      // Simulate Google Sign In for Engineers
-      user = await prisma.user.findFirst({
-        where: { role: "ENGINEER", googleLinked: true },
-        include: { company: true },
-      });
-    } else if (username) {
-      user = await prisma.user.findUnique({
-        where: { username: username.toLowerCase().trim() },
-        include: { company: true },
-      });
-
-      if (!user) {
-        return NextResponse.json({ error: "Invalid username or password" }, { status: 401 });
-      }
-
-      // If password is provided, verify it (or allow demo bypass if empty in dev mode)
-      if (password) {
-        const match = bcrypt.compareSync(password, user.passwordHash);
-        if (!match) {
-          return NextResponse.json({ error: "Invalid username or password" }, { status: 401 });
-        }
-      }
+      return NextResponse.json(
+        { error: "Google sign-in has been disabled. Please use username and password." },
+        { status: 400 }
+      );
     }
+
+    if (!username || !password) {
+      return NextResponse.json({ error: "Username and password are required" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { username: username.toLowerCase().trim() },
+      include: { company: true },
+    });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Invalid username or password" }, { status: 401 });
     }
+
+    // Verify password strictly
+    const match = bcrypt.compareSync(password, user.passwordHash);
+    if (!match) {
+      return NextResponse.json({ error: "Invalid username or password" }, { status: 401 });
+    }
+
+    // Single device login enforcement: generate unique device session token
+    const sessionToken = crypto.randomUUID();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { sessionToken },
+    });
 
     let assignedSiteIds: string[] = [];
     try {
@@ -55,6 +57,7 @@ export async function POST(req: Request) {
       companyName: user.company?.name,
       assignedSiteIds,
       googleLinked: user.googleLinked,
+      sessionToken,
     };
 
     setSessionCookie(sessionUser);

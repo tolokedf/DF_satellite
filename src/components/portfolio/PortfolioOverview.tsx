@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { 
   FolderKanban, 
@@ -10,7 +10,6 @@ import {
   Clock, 
   ExternalLink, 
   Plus, 
-  Search, 
   Building2, 
   Calendar,
   Layers,
@@ -23,7 +22,7 @@ export default function PortfolioOverview() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCompany, setFilterCompany] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [showNewModal, setShowNewModal] = useState(false);
 
   // New project form state
@@ -48,6 +47,13 @@ export default function PortfolioOverview() {
   };
 
   useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setCurrentUser(data.user);
+      })
+      .catch(() => {});
+
     fetchProjects();
     fetch("/api/sites")
       .then((res) => res.json())
@@ -101,15 +107,6 @@ export default function PortfolioOverview() {
 
   const filteredProjects = projects.filter((p) => {
     if (filterCompany !== "ALL" && p.companyId !== filterCompany) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        p.name.toLowerCase().includes(q) ||
-        p.code.toLowerCase().includes(q) ||
-        p.company.name.toLowerCase().includes(q) ||
-        p.site.name.toLowerCase().includes(q)
-      );
-    }
     return true;
   });
 
@@ -125,20 +122,14 @@ export default function PortfolioOverview() {
 
   return (
     <div className="space-y-6">
-      {/* Portfolio Header */}
+      {/* Task Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Asana Portfolio
-            </span>
-            <span className="text-xs text-slate-400">• Standardized Template</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">
-            Field Deployment Portfolio
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Task
           </h1>
-          <p className="text-xs text-slate-500">
-            Unified multi-project overview of all customer AGV / AMR / ARV field deployments.
+          <p className="text-xs text-slate-500 mt-1">
+            Task overview across active robot field deployments and customer operations.
           </p>
         </div>
 
@@ -192,16 +183,16 @@ export default function PortfolioOverview() {
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
+      {/* Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs font-semibold text-slate-600">Customer:</span>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Company filter dropdown without 'Customer:' text */}
           <select
             value={filterCompany}
             onChange={(e) => setFilterCompany(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none"
+            className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none font-medium text-slate-800"
           >
-            <option value="ALL">All Customers</option>
+            <option value="ALL">All Companies</option>
             {companies.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -209,16 +200,8 @@ export default function PortfolioOverview() {
             ))}
           </select>
         </div>
-
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filter projects by name or code..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+        <div className="text-xs text-slate-500">
+          Showing <span className="font-semibold text-slate-700">{filteredProjects.length}</span> {filteredProjects.length === 1 ? "deployment" : "deployments"}
         </div>
       </div>
 
@@ -331,14 +314,14 @@ export default function PortfolioOverview() {
 
       {/* Modal to Create Project */}
       {showNewModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full p-4 sm:p-6 shadow-2xl max-h-[92vh] flex flex-col my-auto">
             <h3 className="text-lg font-bold text-slate-900 mb-1">Create Field Deployment Project</h3>
             <p className="text-xs text-slate-500 mb-4">
               Instantiates a standardized field project with OAL, Issues, Short Stops, MoM, and Daily Reports.
             </p>
 
-            <form onSubmit={handleCreateProject} className="space-y-4">
+            <form onSubmit={handleCreateProject} className="space-y-4 overflow-y-auto pr-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Project Name *</label>
                 <input

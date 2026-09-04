@@ -68,6 +68,7 @@ model User {
   assignedSiteIds String    @default("[]") // JSON string of site IDs this user is authorized to view
   googleLinked    Boolean   @default(false)
   avatarUrl       String?
+  sessionToken    String?   // Tracks active device session for single device login enforcement
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -90,6 +91,7 @@ model Project {
   issues          Issue[]
   meetingMinutes  MeetingMinute[]
   dailyReports    DailyReport[]
+  milestones      Milestone[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 }
@@ -151,6 +153,11 @@ model ShortStopLog {
   resolvedBy      String?
   recoveryAction  String?  // "Auto Resume", "Operator Reset", "E-Stop Release", "Reboot"
   notes           String?
+  problemSummary  String?  // Brief problem summary (matches customer site reference)
+  description     String?  // Detailed description / root cause
+  actionTaken     String?  // "Not resolved", "Resolved", "Restarted AGV", etc.
+  photoUrl        String?
+  source          String?  @default("Manual") // "Manual" or "Auto (synced)"
   createdAt       DateTime @default(now())
 }
 
@@ -183,4 +190,18 @@ model DailyReport {
   htmlContent    String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+model Milestone {
+  id                   String    @id @default(cuid())
+  name                 String    // Milestone name e.g. "Factory Acceptance Test (FAT)"
+  assignee             String    // Assigned engineer name
+  dueDate              DateTime  // Target completion date
+  actualCompletionDate DateTime? // Actual completion date (null if pending)
+  status               String    @default("IN_PROGRESS") // "COMPLETED" | "IN_PROGRESS" | "DELAYED"
+  projectId            String?
+  project              Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  notes                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }
