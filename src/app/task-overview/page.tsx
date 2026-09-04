@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: "Unified overview of all project actions, milestones, and issues",
 };
 
-export default function CurrentStatusPage() {
+export default function TaskOverviewPage() {
   return <TaskOverviewView />;
 }

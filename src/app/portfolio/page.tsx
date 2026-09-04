@@ -1,5 +1,5 @@
-import PortfolioOverview from "@/components/portfolio/PortfolioOverview";
+import ProjectWorkspace from "@/components/project/ProjectWorkspace";
 
 export default function PortfolioPage() {
-  return <PortfolioOverview />;
+  return <ProjectWorkspace />;
 }

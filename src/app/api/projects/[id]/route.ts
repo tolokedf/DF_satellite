@@ -29,6 +29,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         dailyReports: {
           orderBy: { reportDate: "desc" },
         },
+        tasks: {
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
 
@@ -50,6 +53,23 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     });
 
     return NextResponse.json({ ...project, shortStops });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const user = await getSessionUser();
+    if (user?.role !== "ADMIN" && user?.role !== "ENGINEER") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    await prisma.project.delete({
+      where: { id: params.id },
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

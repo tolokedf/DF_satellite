@@ -42,34 +42,34 @@
 - **App Title:** `DF satellite`
 - **Navbar Top Compartment (Level 1 - High Level Navigation):**
   - **Left:** Official DF Automation logo mark + "DF Automation and robotics" label + "DF satellite" title + dynamic Site Filter dropdown (beside the logo).
-    - **Search Bar:** Completely removed from top bar and task overview.
+    - **Search Bar:** Completely removed from top bar.
     - **Top Bar Sections (Consistent Dimensions: `h-8 px-3 rounded-lg text-xs font-semibold`):**
-      - **`issue list`** button (all roles, links to `/feed`): Activates the operational issue feed and **reveals the 2nd-level left sidebar**.
-      - **`current status`** button (Engineer & Admin, links to `/current-status`): Field engineering status dashboard; **hides the left sidebar**.
-      - **`task overview`** button (Engineer & Admin, links to `/portfolio`): Multi-project field dossier overview; **hides the left sidebar**.
-      - **`My role`** button (Engineer only, links to `/my-role`): Milestone tracking dashboard (name, assignee, due date, actual completion date, delay); **hides the left sidebar**.
+      - **`issue list`** button (all roles, links to `/feed`): Activates the operational issue feed and reveals the 2nd-level issue list left sidebar.
+      - **`task Overview`** button (Engineer & Admin, links to `/task-overview`): High-level consolidated task dashboard; **hides the left sidebar**.
+      - **`project`** button (Engineer & Admin, links to `/project`): Project workspace; **reveals the Project left sidebar**.
       - **`Administration`** button (Admin only, links to `/admin`): Super Admin Console; **hides the left sidebar**.
       - User avatar & username badge + **Sign Out** button.
       - *Switch Persona feature is completely disabled.*
   - **Left Sidebar (Level 2 - Sub-Module Navigation):**
-    - **Contextual Visibility:** The left sidebar **only shows when in the `issue list` section** (`/feed`, `/form`, `/focus`, `/analytics`, `/qr`, `/settings`, `/portal/*`).
-    - When clicking **`task overview`**, **`current status`**, **`My role`**, or **`Administration`**, the left sidebar is **strictly hidden**, giving full-width real estate to the dashboard and project dossiers.
+    - **Contextual Visibility:**
+      - When in **`issue list`**: Shows the Issue List sidebar (`Log Stop`, `Feed`, `Focus Board`, `Analytics`, `QR Codes`, `Log Issue`, `Issues`, `Settings`).
+      - When in **`project`**: Shows the Project left sidebar with 2 sections: **"My Task"** and **"Work"** (`+ Add Project` button and all created projects).
+      - When clicking **`task Overview`** or **`Administration`**, the left sidebar is **strictly hidden**, giving full-width real estate to the dashboards.
   - **📱 Mobile Phone & Laptop Responsive Architecture:**
     - **Phone Mode (`< md` screens):**
       - **Header & Branding:** Compact DF icon mark + "DF satellite" + truncated Site selector to prevent horizontal overflow on small mobile screens.
-      - **Mobile Navigation Drawer:** Tapping the hamburger button (`Menu`) slides out a navigation drawer with user role badge, Level 1 sections, 2nd-level issue list links, and Sign Out.
-      - **1-Tap Quick-Pill Bar:** Positioned directly under the header on phones, providing instant 1-tap horizontal scrolling access to all Level 1 sections (`issue list`, `current status`, `task overview`, `My role`, `Administration`).
-      - **Mobile Sub-Navigation Bar:** When in `issue list`, the fixed 208px desktop sidebar is hidden (`hidden md:flex`) so data tables receive 100% full screen width on phones. Instead, a smooth horizontal pill bar (`[+ Log Stop] [Feed] [Focus Board] [Analytics] [QR Codes] [+ Log Issue] [Issues] [Settings]`) sits on top of the content area.
+      - **Mobile Navigation Drawer:** Tapping the hamburger button (`Menu`) slides out a navigation drawer with user role badge, Level 1 sections (`issue list`, `task Overview`, `project`, `Administration`), and Sign Out.
+      - **1-Tap Quick-Pill Bar:** Positioned directly under the header on phones, providing instant 1-tap horizontal scrolling access to all Level 1 sections (`issue list`, `task Overview`, `project`, `Administration`).
+      - **Mobile Sub-Navigation Bar:** Smooth horizontal pill bar for sub-navigation in both `issue list` and `project` (`[My Task] [+ Add Project] [Project 1] [Project 2]...`).
     - **Laptop / Desktop Mode (`md` and up screens):**
       - **Spacious Desktop Header:** Displays full DF Automation logo, full site dropdown, inline navigation buttons with icons and labels (`h-8 px-3 rounded-lg text-xs font-semibold`), user display name, and quick Sign Out button.
       - **Desktop Left Sidebar:** Fixed, collapsible (`w-52` / `w-16`) sidebar alongside the main workspace.
     - **Mobile Table & Modal Safeguards:**
-      - All data tables (`FeedView`, `MyRoleView`, `AdminConsole`, `CurrentStatusView`) have `overflow-x-auto` with minimum widths (`min-w-[620px]` to `min-w-[760px]`) and smooth touch scrolling so columns never compress into vertical slivers.
+      - All data tables (`FeedView`, `ProjectWorkspace`, `TaskOverviewView`, `AdminConsole`) have `overflow-x-auto` with minimum widths (`min-w-[700px]` to `min-w-[820px]`) and smooth touch scrolling so columns never compress into vertical slivers.
       - All modals have responsive padding (`p-3 sm:p-4`), `max-h-[92vh]`, and scrollable form bodies to prevent virtual keyboard clipping on phones.
   - **Logged-Out View & Authentication Guard:**
     - When logged out (or unauthenticated on `/login`), the left sidebar and top navbar compartment are completely hidden. Only the logo, title, and login card are visible.
     - Unauthenticated access to protected routes is guarded by [`src/middleware.ts`](file:///home/tinonn/DF_satelite/src/middleware.ts), redirecting unauthenticated requests to `/login`.
-    - To prevent redirect flickering loops on session expiration or multi-device invalidation, `/login` never bounces back to `/feed` via middleware, and [`src/context/SiteContext.tsx`](file:///home/tinonn/DF_satelite/src/context/SiteContext.tsx) automatically purges stale cookies before redirecting to `/login`.
 
 ---
 
@@ -78,8 +78,8 @@
 | Role | Access Scope & Key Workflows | Authentication |
 | :--- | :--- | :--- |
 | **CUSTOMER** | **Strictly Scoped Multi-Tenant Access:**<br/>• Customers only see robots and logs from their assigned sites.<br/>• Site Filter allows selecting specific authorized sites or "All Sites" (if 2+ sites assigned).<br/>• Top bar displays **`issue list`** with full 2nd-level left sidebar: Short Stop quick logging (`/form`), Feed view (`/feed`), Focus Board (`/focus`), Analytics (`/analytics`), QR codes (`/qr`), Settings (`/settings`). | Username & Password (provisioned by Admin) |
-| **ENGINEER** | **Field Deployment Management, Current Status, Task Overview & My Role:**<br/>• Unrestricted visibility into all customer sites, robot fleets, and field deployment projects.<br/>• Top bar Level 1 includes **`issue list`** (reveals 2nd level sidebar), **`current status`** (FA dashboard, hides sidebar), **`task overview`** (field dossiers, hides sidebar), and **`My role`** (milestone tracking: name, assignee, due date, actual completion date, delay; hides sidebar).<br/>• Site Filter includes all customer sites across the entire fleet + "All Sites". | Username & Password (provisioned by Admin) |
-| **ADMIN** | **Access Control, Site Provisioning & Fleet Governance:**<br/>• Single master account (`admin` / password: `df`).<br/>• Access to Super Admin Console (`/admin`): User provisioning, Site creation & management, Robot fleet registration, and Database Portability.<br/>• Full access to Top Bar Level 1: **`issue list`** (reveals 2nd level sidebar), **`current status`** (hides sidebar), **`task overview`** (hides sidebar), and **`Administration`** (hides sidebar). | Username & Password (`admin` / `df`) |
+| **ENGINEER** | **Field Deployment Management, Task Overview, Project & My Task:**<br/>• Unrestricted visibility into all customer sites, robot fleets, and field deployment projects.<br/>• Top bar Level 1 includes **`issue list`** (reveals issue sidebar), **`task Overview`** (consolidated fleet task metrics; hides sidebar), and **`project`** (project management with dedicated left sidebar).<br/>• Site Filter includes all customer sites across the entire fleet + "All Sites". | Username & Password (provisioned by Admin) |
+| **ADMIN** | **Access Control, Site Provisioning & Fleet Governance:**<br/>• Single master account (`admin` / password: `df`).<br/>• Access to Super Admin Console (`/admin`): User provisioning, Site creation & management, Robot fleet registration, and Database Portability.<br/>• Full access to Top Bar Level 1: **`issue list`** (reveals issue sidebar), **`task Overview`** (hides sidebar), **`project`** (reveals project sidebar), and **`Administration`** (hides sidebar). | Username & Password (`admin` / `df`) |
 
 ---
 
@@ -97,46 +97,39 @@ In the Super Admin Console (`/admin`), a dedicated **Customer Sites** tab enable
   - Customer user Authorized Sites checklist.
 - **Site Management Table:** Shows company, site name, site code, location, total robots deployed, and logged short stops, with deletion support.
 
-## 📊 5. Current Task & Task Overview Modules (Top Bar Exclusive)
+## 📊 5. Project & Task Overview Modules
 
-### 📡 Current Task (`/current-status`)
-- **Placement:** Accessible exclusively via the top bar button; strictly omitted from the left sidebar.
-- **Visual Design Reference:** Faithfully models the internal FA Dashboard (`http://192.168.0.148:8090/`).
-- **Team Switcher:** Toggle between **DFA** (DF Automation) and **DFI** (DF International) teams.
-- **KPI Metrics:**
-  - Active FA Deployments count
-  - Total Weightage (Engineering Hours)
-  - Total Overdue Tasks
-  - Tasks In Progress
-- **Dual Tabbed Navigation:**
-  - **Overview Tab:** Grouped FA project accordions showing customer, priority, target dates, progress bars, open Asana tasks, and engineer workload cards.
-  - **Workload & Scoreboard Tab:** Weekly engineer allocation calendar (Mon–Fri) and Engineer Performance Scoreboard tracking completed weightage, in-progress tasks, and on-time completion rates.
-- **Backend Bridge & LAN Resiliency:**
-  - Proxy route: [`src/app/api/current-status/route.ts`](file:///home/tinonn/DF_satelite/src/app/api/current-status/route.ts)
-  - Live query: Polls `http://192.168.0.148:8090/api/field?team={team}` with a 3.5-second timeout.
-  - Automatic Fallback: If offline or outside the local office LAN, it seamlessly queries the local SQLite `Project`, `ActionItem`, and `User` tables to prevent any disruption or error screens.
+### 📁 Project (`/project`)
+- **Left Sidebar Architecture (Just like issue list):**
+  - Section 1: **"My Task"**
+    - Moved from former top-bar "My role" section into the Project left sidebar.
+    - Shows all tasks across all projects assigned to the current engineer.
+    - Interactive 5-column table with Done/Undone checkboxes, filter pills (All / Pending / Delayed / Completed), and search.
+  - Section 2: **"Work"**
+    - Lists all created projects (e.g. CAG Project, Proton Johor, etc.).
+    - `+ Add Project` button: Opens quick creation modal (Project Name, optional Code, optional Customer Site) which immediately updates the list and routes to the new project.
+- **Inside Every Single Project (Always 3 Sections):**
+  1. **"Open Action"** (top)
+  2. **"Milestone"** (middle)
+  3. **"Issue"** (bottom)
+- **Customizable To-Do List in Each Section:**
+  - Can add custom to-do tasks to any section via `+ Add Action`, `+ Add Milestone`, `+ Add Issue` buttons (e.g. in CAG project Milestone: `assembly AGV 1`, `Testing AGV 1`, `pakage and shipment AGV1`).
+  - Allows engineer to click **done or undone** with immediate visual feedback (line-through, date recording, status change).
+  - **Exact 5 Columns per Row (From Left to Right):**
+    1. **the event:** Checkbox (Done/Undone) + event/task description.
+    2. **assign:** Name of assigned engineer, with selector allowing to choose which engineer to do the task by name.
+    3. **duedate:** Target completion date (editable via date picker).
+    4. **actual finished data:** Actual completion date (editable date picker; auto-filled with current date when marked done).
+    5. **delay:** Schedule variance calculation:
+       - If no delay (completed on/before due date, or pending with due date in future, or custom note): note down **"no delay"** in an emerald badge.
+       - If delayed (completed after due date or past due): notes down **"+X days delay"** in a rose/amber badge.
 
-### 📋 Task Overview (`/portfolio`)
-- **Header:** Cleaned up to "Task" with overview subtitle.
-- **Removed Elements:**
-  - "Asana Portfolio Standardized Template" badge completely removed.
-  - Search bar input completely removed.
-  - "Customer:" prefix label removed in front of the company selection dropdown.
-  - **"my task" filter toggle & urgent tasks card removed:** In accordance with user directives, the "my task" filter list and toggle button are removed from Task overview, replaced by the dedicated top-level **`My role`** section.
-
-### 🎯 My Role Milestone Management (`/my-role`)
-- **Exclusivity:** Strictly accessible **only for Engineer accounts** (`currentUser?.role === "ENGINEER"`). Hidden for Customer and Admin accounts. Unauthenticated or non-engineer visits are automatically redirected to `/feed`.
-- **Top-Level Navigation:** Accessible via the top bar `My role` button with identical dimensions (`h-8 px-3 rounded-lg text-xs font-semibold`). Clicking `My role` **strictly hides the 2nd-level left sidebar**.
-- **Exact Milestone Table Columns:**
-  1. **name:** Milestone description (e.g. Factory Acceptance Test, Rigging, SLAM Mapping, SAT) with optional project badge.
-  2. **assignee:** Assigned robotics field engineer.
-  3. **due date:** Target completion date.
-  4. **actual completion date:** Actual verified completion date with quick "Mark Complete" date-picker modal for pending tasks.
-  5. **delay (days):** Mathematically calculated schedule variance:
-     - When completed: `differenceInDays(actualCompletionDate, dueDate)`
-     - When pending/in-progress: `differenceInDays(today, dueDate)`
-     - Color coding: `0 days` (emerald on-time/early badge), `+X days` (rose/amber delay badge).
-- **Interactive Management:** Add milestone, edit milestone, delete milestone, quick completion, search by name/assignee, and filter pills (All / My Milestones / Delayed / Completed).
+### 📡 Task Overview (`/task-overview`)
+- **Aborted Structure:** The previous FA Dashboard structure (`192.168.0.148:8090` proxy, DFA/DFI teams, weekly allocation calendar, engineer scoreboards) is completely aborted and removed.
+- **Consolidated Fleet Task Dashboard:**
+  - **KPI Metric Summary Cards:** Total Tasks, Open Actions, Milestones, Issues, Delayed Tasks, Completed Tasks.
+  - **Cross-Project Unified Task Table:** Displays all tasks across all projects with Done/Undone checkboxes, The Event, Project badge (with quick link to project), Section badge, Assignee, Due Date, Actual Finished Date, and Delay ("no delay" / "+X days delay").
+  - **Filters & Search:** Quick search by task or assignee, filter by Project, Section, and Status (All / Pending / Delayed / Done).
 
 ---
 

@@ -23,10 +23,14 @@ export async function GET(req: Request) {
         },
         actionItems: true,
         issues: true,
+        tasks: {
+          orderBy: { createdAt: "asc" },
+        },
         _count: {
           select: {
             actionItems: true,
             issues: true,
+            tasks: true,
             meetingMinutes: true,
             dailyReports: true,
           },
@@ -49,17 +53,38 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    if (!body.name || !body.name.trim()) {
+      return NextResponse.json({ error: "Project name is required" }, { status: 400 });
+    }
+
+    let companyId = body.companyId;
+    let siteId = body.siteId;
+    if (!companyId || !siteId) {
+      const firstSite = await prisma.site.findFirst();
+      if (firstSite) {
+        siteId = siteId || firstSite.id;
+        companyId = companyId || firstSite.companyId;
+      }
+    }
+
+    const code = (body.code && body.code.trim()) || `PRJ-${Date.now().toString(36).toUpperCase()}`;
+
     const project = await prisma.project.create({
       data: {
-        name: body.name,
-        code: body.code,
-        companyId: body.companyId,
-        siteId: body.siteId,
+        name: body.name.trim(),
+        code,
+        companyId,
+        siteId,
         leadEngineer: body.leadEngineer || user.name,
         targetGoLive: body.targetGoLive ? new Date(body.targetGoLive) : null,
         description: body.description,
         gdriveFolderUrl: body.gdriveFolderUrl,
         health: body.health || "ON_TRACK",
+      },
+      include: {
+        company: true,
+        site: true,
+        tasks: true,
       },
     });
 

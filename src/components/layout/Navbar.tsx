@@ -113,48 +113,33 @@ export default function Navbar({ currentUser }: NavbarProps) {
               <span>issue list</span>
             </Link>
 
-            {/* Current Status button (Engineer & Admin) */}
+            {/* Task Overview button (Engineer & Admin) */}
             {(isEngineer || isAdmin) && (
               <Link
-                href="/current-status"
+                href="/task-overview"
                 className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition ${
-                  pathname.startsWith("/current-status")
+                  pathname.startsWith("/task-overview") || pathname.startsWith("/current-status")
                     ? "bg-teal-600 text-white shadow-sm border border-teal-600"
                     : "text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200"
                 }`}
               >
                 <Activity className="w-3.5 h-3.5" />
-                <span>current status</span>
+                <span>task Overview</span>
               </Link>
             )}
 
-            {/* Task overview button (Engineer & Admin) */}
+            {/* Project button (Engineer & Admin) */}
             {(isEngineer || isAdmin) && (
               <Link
-                href="/portfolio"
+                href="/project"
                 className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition ${
-                  pathname === "/portfolio" || pathname.startsWith("/portfolio") || pathname.startsWith("/projects")
+                  pathname.startsWith("/project") || pathname.startsWith("/portfolio") || pathname.startsWith("/projects")
                     ? "bg-blue-600 text-white shadow-sm border border-blue-600"
                     : "text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200"
                 }`}
               >
                 <FolderKanban className="w-3.5 h-3.5" />
-                <span>task overview</span>
-              </Link>
-            )}
-
-            {/* My role button strictly for Engineer only */}
-            {isEngineer && (
-              <Link
-                href="/my-role"
-                className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition ${
-                  pathname.startsWith("/my-role")
-                    ? "bg-indigo-600 text-white shadow-sm border border-indigo-600"
-                    : "text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200"
-                }`}
-              >
-                <Award className="w-3.5 h-3.5" />
-                <span>My role</span>
+                <span>project</span>
               </Link>
             )}
 
@@ -235,46 +220,31 @@ export default function Navbar({ currentUser }: NavbarProps) {
 
           {(isEngineer || isAdmin) && (
             <Link
-              href="/current-status"
+              href="/task-overview"
               onClick={closeMobileMenu}
               className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-                pathname.startsWith("/current-status")
+                pathname.startsWith("/task-overview") || pathname.startsWith("/current-status")
                   ? "bg-teal-600 text-white shadow-xs"
                   : "text-slate-600 bg-white border border-slate-200"
               }`}
             >
               <Activity className="w-3 h-3" />
-              <span>current status</span>
+              <span>task Overview</span>
             </Link>
           )}
 
           {(isEngineer || isAdmin) && (
             <Link
-              href="/portfolio"
+              href="/project"
               onClick={closeMobileMenu}
               className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-                pathname === "/portfolio" || pathname.startsWith("/portfolio") || pathname.startsWith("/projects")
+                pathname.startsWith("/project") || pathname.startsWith("/portfolio") || pathname.startsWith("/projects")
                   ? "bg-blue-600 text-white shadow-xs"
                   : "text-slate-600 bg-white border border-slate-200"
               }`}
             >
               <FolderKanban className="w-3 h-3" />
-              <span>task overview</span>
-            </Link>
-          )}
-
-          {isEngineer && (
-            <Link
-              href="/my-role"
-              onClick={closeMobileMenu}
-              className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-                pathname.startsWith("/my-role")
-                  ? "bg-indigo-600 text-white shadow-xs"
-                  : "text-slate-600 bg-white border border-slate-200"
-              }`}
-            >
-              <Award className="w-3 h-3" />
-              <span>My role</span>
+              <span>project</span>
             </Link>
           )}
 
@@ -366,46 +336,31 @@ export default function Navbar({ currentUser }: NavbarProps) {
 
                 {(isEngineer || isAdmin) && (
                   <Link
-                    href="/current-status"
+                    href="/task-overview"
                     onClick={closeMobileMenu}
                     className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
-                      pathname.startsWith("/current-status")
+                      pathname.startsWith("/task-overview") || pathname.startsWith("/current-status")
                         ? "bg-teal-600 text-white shadow-xs"
                         : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     <Activity className="w-4 h-4" />
-                    <span>current status</span>
+                    <span>task Overview</span>
                   </Link>
                 )}
 
                 {(isEngineer || isAdmin) && (
                   <Link
-                    href="/portfolio"
+                    href="/project"
                     onClick={closeMobileMenu}
                     className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
-                      pathname === "/portfolio" || pathname.startsWith("/portfolio") || pathname.startsWith("/projects")
+                      pathname.startsWith("/project") || pathname.startsWith("/portfolio") || pathname.startsWith("/projects")
                         ? "bg-blue-600 text-white shadow-xs"
                         : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     <FolderKanban className="w-4 h-4" />
-                    <span>task overview</span>
-                  </Link>
-                )}
-
-                {isEngineer && (
-                  <Link
-                    href="/my-role"
-                    onClick={closeMobileMenu}
-                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
-                      pathname.startsWith("/my-role")
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <Award className="w-4 h-4" />
-                    <span>My role</span>
+                    <span>project</span>
                   </Link>
                 )}
 
