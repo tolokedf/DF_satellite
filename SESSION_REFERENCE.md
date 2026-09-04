@@ -126,6 +126,14 @@ In the Super Admin Console (`/admin`), a dedicated **Customer Sites** tab enable
 
 ### 📡 Task Overview (`/task-overview`)
 - **Aborted Structure:** The previous FA Dashboard structure (`192.168.0.148:8090` proxy, DFA/DFI teams, weekly allocation calendar, engineer scoreboards) is completely aborted and removed.
+- **Full Milestone Gantt Chart (Top Prominent View):**
+  - **Y-Axis:** Displays all current and dummy projects created in the "Project" module (e.g. CAG Project Phase 2, Honda Melaka AMR, Dyson Senai Carrier, Top Glove Banting AMR, Western Digital Wafer AGV, Proton Johor, etc.).
+  - **Timeline (X-Axis):** Spans all project timelines with monthly/weekly ticks and a prominent vertical "Today" indicator line.
+  - **Continuous Timeline Track:** Shows an unbroken continuous line starting from project initialization date (`startDate`) across each milestone's target due date.
+  - **Dynamic Milestone Achievement Color Progression:**
+    - **Light Color Segment:** The line begins as a soft light color (`bg-blue-100` / `border-blue-200`), signifying planned, pending, or future milestones.
+    - **Dark Color Segment:** When a specific milestone is achieved / completed (`isDone: true`), the continuous line segment turns **dark color** (`bg-blue-700`), allowing engineers to immediately visualize at a glance which task is until which section.
+    - **Milestone Nodes:** Completed milestones display a solid emerald node with a checkmark (`✓`), while upcoming milestones display a circular node with quick labels and interactive hover tooltips (Event, Assignee, Due Date, Actual Completion Date, and Delay).
 - **Consolidated Fleet Task Dashboard:**
   - **KPI Metric Summary Cards:** Total Tasks, Open Actions, Milestones, Issues, Delayed Tasks, Completed Tasks.
   - **Cross-Project Unified Task Table:** Displays all tasks across all projects with Done/Undone checkboxes, The Event, Project badge (with quick link to project), Section badge, Assignee, Due Date, Actual Finished Date, and Delay ("no delay" / "+X days delay").

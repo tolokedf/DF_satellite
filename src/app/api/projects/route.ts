@@ -76,6 +76,7 @@ export async function POST(req: Request) {
         companyId,
         siteId,
         leadEngineer: body.leadEngineer || user.name,
+        startDate: body.startDate ? new Date(body.startDate) : new Date(),
         targetGoLive: body.targetGoLive ? new Date(body.targetGoLive) : null,
         description: body.description,
         gdriveFolderUrl: body.gdriveFolderUrl,

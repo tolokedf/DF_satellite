@@ -17,6 +17,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import { format } from "date-fns";
+import GanttChart from "./GanttChart";
 
 interface Task {
   id: string;
@@ -35,7 +36,20 @@ interface Task {
   };
 }
 
+interface ProjectData {
+  id: string;
+  name: string;
+  code: string;
+  startDate?: string | null;
+  createdAt: string;
+  leadEngineer: string;
+  tasks?: any[];
+  company?: { name: string };
+  site?: { name: string };
+}
+
 export default function TaskOverviewView() {
+  const [projects, setProjects] = useState<ProjectData[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -43,13 +57,22 @@ export default function TaskOverviewView() {
   const [filterSection, setFilterSection] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "DELAYED" | "DONE">("ALL");
 
-  const fetchTasks = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/project-tasks");
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) setTasks(data);
+      const [projRes, taskRes] = await Promise.all([
+        fetch("/api/projects"),
+        fetch("/api/project-tasks"),
+      ]);
+
+      if (projRes.ok) {
+        const pData = await projRes.json();
+        if (Array.isArray(pData)) setProjects(pData);
+      }
+
+      if (taskRes.ok) {
+        const tData = await taskRes.json();
+        if (Array.isArray(tData)) setTasks(tData);
       }
     } catch (err) {
       console.error(err);
@@ -59,7 +82,11 @@ export default function TaskOverviewView() {
   };
 
   useEffect(() => {
-    fetchTasks();
+    fetchData();
+
+    const handleUpdate = () => fetchData();
+    window.addEventListener("projects-updated", handleUpdate);
+    return () => window.removeEventListener("projects-updated", handleUpdate);
   }, []);
 
   const computeDelay = (
@@ -100,6 +127,19 @@ export default function TaskOverviewView() {
       )
     );
 
+    // Also update project tasks in projects state for immediate Gantt timeline color update!
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== task.projectId) return p;
+        return {
+          ...p,
+          tasks: (p.tasks || []).map((pt) =>
+            pt.id === task.id ? { ...pt, isDone: nextDone, actualFinishedDate: nextFinished } : pt
+          ),
+        };
+      })
+    );
+
     try {
       await fetch(`/api/project-tasks/${task.id}`, {
         method: "PATCH",
@@ -109,20 +149,17 @@ export default function TaskOverviewView() {
           actualFinishedDate: nextFinished,
         }),
       });
+      window.dispatchEvent(new Event("projects-updated"));
     } catch (err) {
       console.error(err);
-      fetchTasks();
+      fetchData();
     }
   };
 
   // Extract unique projects
   const uniqueProjects = useMemo(() => {
-    const map = new Map<string, string>();
-    tasks.forEach((t) => {
-      if (t.project) map.set(t.project.id, t.project.name);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [tasks]);
+    return projects.map((p) => ({ id: p.id, name: p.name }));
+  }, [projects]);
 
   // Compute KPI Metrics
   const stats = useMemo(() => {
@@ -191,7 +228,10 @@ export default function TaskOverviewView() {
         </Link>
       </div>
 
-      {/* KPI Stat Cards */}
+      {/* 1. FIRST THING: Full Gantt Chart */}
+      <GanttChart projects={projects} />
+
+      {/* 2. KPI Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -245,7 +285,7 @@ export default function TaskOverviewView() {
         </div>
       </div>
 
-      {/* Search & Filters Bar */}
+      {/* 3. Search & Filters Bar */}
       <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
@@ -297,7 +337,7 @@ export default function TaskOverviewView() {
         </div>
       </div>
 
-      {/* Cross-Project Unified Task Table */}
+      {/* 4. Cross-Project Unified Task Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse min-w-[820px]">
@@ -317,7 +357,7 @@ export default function TaskOverviewView() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="text-center py-10 text-slate-400">
-                    Loading task overview...
+                    Loading task overview and Gantt chart...
                   </td>
                 </tr>
               ) : filteredTasks.length === 0 ? (

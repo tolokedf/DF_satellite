@@ -84,6 +84,7 @@ model Project {
   status          String          @default("ACTIVE") // "PLANNING" | "ACTIVE" | "ON_HOLD" | "COMPLETED"
   health          String          @default("ON_TRACK") // "ON_TRACK" | "AT_RISK" | "OFF_TRACK"
   leadEngineer    String          @default("Lead Engineer")
+  startDate       DateTime?
   targetGoLive    DateTime?
   description     String?
   gdriveFolderUrl String?         // Google Drive link for synced viewing
