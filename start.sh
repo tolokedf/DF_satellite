@@ -25,7 +25,7 @@ echo "   • Engineer (Google linked): engineer / eng123"
 echo "   • Admin:                    admin / admin123"
 echo "   • Proton Customer:          proton / proton123 (Johor & Penang only)"
 echo "   • Perodua Customer:        perodua / perodua123 (Rawang only)"
-echo "   • Intern:                   intern / intern123"
+echo "   • Engineer (Field Intern):  intern / intern123"
 echo "======================================================================"
 
 exec npx next start -H 0.0.0.0 -p "$PORT"

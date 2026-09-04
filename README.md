@@ -88,12 +88,12 @@ The web application binds to `0.0.0.0` on port `3000`, making it immediately acc
 
 | Role | Username | Password | Notes & Scope Constraint |
 | :--- | :--- | :--- | :--- |
-| **Field Engineer** | `engineer` | `eng123` | **Google Account Linked** (`engineer.lead@gmail.com`). Access to Asana Portfolio and all customer sites. |
-| **System Admin** | `admin` | `admin123` | Full control: Add new customers, interns, and assign site access. |
+| **Field Engineer (Lead)** | `engineer` | `eng123` | **Google Account Linked** (`engineer.lead@gmail.com`). Access to Asana Portfolio and all customer sites. |
+| **Field Engineer (Intern)** | `intern` | `intern123` | Engineer role (Field Deployment Intern Ahmad). |
+| **System Admin** | `admin` | `admin123` | Full control: Add new customers, engineers/interns, and assign site access. |
 | **Customer: Proton** | `proton` | `proton123` | **Scoped**: Strictly sees Proton Johor (10 AGVs) & Proton Penang (3 ARVs). |
 | **Customer: Perodua**| `perodua`| `perodua123`| **Scoped**: Strictly sees Perodua Rawang (4 AMRs). |
 | **Customer: ST Muar**| `stmuar`  | `stmuar123` | **Scoped**: Cleanroom facility (6 AGVs/ARVs). |
-| **Field Intern** | `intern` | `intern123` | Assigned to Johor & Rawang sites. |
 
 *(You can also use the **"Switch Persona"** button in the top navigation bar to test any role with one click without logging out).*
 

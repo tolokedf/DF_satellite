@@ -62,7 +62,7 @@ model User {
   email           String?   @unique // e.g. engineer@df.com for Google Auth
   passwordHash    String    // bcrypt hashed password
   name            String
-  role            String    @default("CUSTOMER") // "ADMIN" | "ENGINEER" | "CUSTOMER" | "INTERN"
+  role            String    @default("CUSTOMER") // "ADMIN" | "ENGINEER" | "CUSTOMER"
   companyId       String?
   company         Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
   assignedSiteIds String    @default("[]") // JSON string of site IDs this user is authorized to view

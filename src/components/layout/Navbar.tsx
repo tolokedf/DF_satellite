@@ -80,7 +80,6 @@ export default function Navbar({ currentUser, currentSite, onSiteChange, availab
     ADMIN: "bg-purple-100 text-purple-800 border-purple-300",
     ENGINEER: "bg-blue-100 text-blue-800 border-blue-300",
     CUSTOMER: "bg-emerald-100 text-emerald-800 border-emerald-300",
-    INTERN: "bg-amber-100 text-amber-800 border-amber-300",
   };
 
   return (
@@ -234,23 +233,23 @@ export default function Navbar({ currentUser, currentSite, onSiteChange, availab
                 </span>
               </button>
 
-              {/* Intern */}
+              {/* Intern (Engineer Role) */}
               <button
                 onClick={() => handleFastSwitch("intern")}
                 disabled={loading}
-                className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 transition flex items-center justify-between"
+                className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition flex items-center justify-between"
               >
                 <div>
                   <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-600"></span>
-                    Field Intern (Ahmad)
+                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                    Field Intern (Ahmad - Engineer Role)
                   </div>
                   <div className="text-[11px] text-slate-500">
                     id: intern • Password: intern123
                   </div>
                 </div>
-                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">
-                  INTERN
+                <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">
+                  ENGINEER
                 </span>
               </button>
 

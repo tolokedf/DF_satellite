@@ -202,7 +202,7 @@ async function main() {
       email: "intern@dfautomation.com",
       passwordHash: hash("intern123"),
       name: "Field Deployment Intern (Ahmad)",
-      role: "INTERN",
+      role: "ENGINEER",
       assignedSiteIds: JSON.stringify([protonJohor.id, peroduaRawang.id]),
     },
   });

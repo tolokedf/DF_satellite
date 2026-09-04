@@ -31,7 +31,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
 
   const isCustomer = user?.role === "CUSTOMER";
-  const isEngineer = user?.role === "ENGINEER" || user?.role === "INTERN";
+  const isEngineer = user?.role === "ENGINEER";
   const isAdmin = user?.role === "ADMIN";
 
   const linkClass = (href: string) => {
