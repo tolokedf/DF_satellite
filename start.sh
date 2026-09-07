@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PORT=${PORT:-3000}
+PORT=${PORT:-3001}
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$BASE_DIR"
 

@@ -21,20 +21,34 @@
 - **Cross-Device LAN IP Access Support:**
   - Cookies are configured with `secure: process.env.SECURE_COOKIES === "true"` (default `false` over HTTP LAN deployments).
   - Explicit `credentials: "include"` is set on login requests, and the session cookie is dispatched across both `cookies().set(...)` and `NextResponse.cookies.set(...)`.
-  - When accessing via a local network IP (e.g. `http://192.168.1.148:3000`), mobile and desktop browsers on other devices do not reject or drop the cookie, enabling seamless login and persistent sessions across any device on the LAN.
+  - When accessing via a local network IP (e.g. `http://192.168.1.148:3001`), mobile and desktop browsers on other devices do not reject or drop the cookie, enabling seamless login and persistent sessions across any device on the LAN.
 
 ### 🛡️ Single Administrator Account
 - **Master Admin Only:** Only one admin account exists in the system (`admin` / `df`).
 - **No Additional Admins:** In the Super Admin Console, the role selection dropdown offers only **`Customer`** and **`Engineer`**. Creating additional `ADMIN` accounts or deleting the master admin account is strictly blocked by API guards.
 
-### 🌐 Automatic Site Scoping for Engineers
-- When provisioning an **`Engineer`** account in the Admin Console, the **Authorized Sites** container is automatically greyed out and all site checkboxes are disabled. Engineers automatically have global, unrestricted access across all customer sites in the fleet.
+### 🌐 Authorized Sites Scope Constraint for Admin User Provisioning
+- In the Super Admin Console (`/admin`) User Accounts tab:
+  - When provisioning an **`Engineer`** account, the Authorized Sites container is greyed out and engineers automatically receive global access across all sites.
+  - When provisioning a **`Customer`** account and selecting a **Company**, the **Authorized Sites (Scope Constraint)** checklist dynamically filters to **only** allow selecting sites belonging to that specific company.
+  - If the administrator changes the selected company, any currently selected site IDs that do not belong to the newly selected company are immediately and automatically pruned from state.
 
-### 📅 Universal Date Format Directive (day/month/years)
-> **For now and further throughout the whole project, the date system is in day/month/years: `d/M/yyyy` (e.g. 4 July 2026 is `4/7/2026`).**
-- **Strict Format Requirement:** All dates displayed across all modules, tables, cards, Gantt charts, tooltips, modals, exported reports, and logs must strictly follow the `day/month/years` convention (`d/M/yyyy`, e.g. `4/7/2026`).
-- **Timestamps:** When time is included, the format is `d/M/yyyy HH:mm` (e.g. `4/7/2026 14:30`).
-- **Form Inputs:** While standard HTML `<input type="date">` internally accepts `yyyy-MM-dd` as its data value, all displayed date labels, text, and readouts across the entire application must strictly present dates as `d/M/yyyy`.
+### 📅 Universal Date Format Directive (DD/MM/YYYY)
+> **All dates across the entire application must strictly be in `DD/MM/YYYY` format (`dd/MM/yyyy`, e.g. 7 September 2026 is `07/09/2026`).**
+- **Strict Format Requirement:** All dates displayed across all modules (Project Workspace, My Tasks, Task Overview, Gantt charts, Short Stop Analytics, Issue Tracker, Daily Reports, MoM, and exports) must strictly follow `DD/MM/YYYY` (`dd/MM/yyyy`).
+- **Timestamps:** When time is included, the format is `DD/MM/YYYY HH:mm` (`dd/MM/yyyy HH:mm`, e.g. `07/09/2026 14:30`).
+- **Date Inputs in Project Workspace:** Standard HTML `<input type="date">` is wrapped with a styled container displaying a visible `dd/MM/yyyy` formatted overlay (`format(new Date(...), "dd/MM/yyyy")`) so the date format is guaranteed regardless of client browser/OS locale.
+
+### 🔴 Project Delay Coloring Directive
+- **Schedule Variance Evaluation:** Whenever a task has a due date and an actual finished date (or is overdue today), if the actual finished date is later than the due date:
+  - The **Delay** column must show **`delayed`** (with `+Xd` duration) in **bold red colour** (`bg-red-100 text-red-600 border border-red-200 font-bold`).
+  - The **Actual Finished Date** field is styled in **red** (`text-red-600 bg-red-50 border-red-200 font-bold`).
+  - If completed on or before the due date, it displays **`no delay`** in emerald green (`bg-emerald-50 text-emerald-700 border border-emerald-200`).
+
+### 📁 Optional Project Site Selection
+- **No Site Option:** When creating a project (via Sidebar modal or Portfolio Overview), site selection is optional. Users can select "No site (Internal / General)".
+- **Backend & Schema Support:** `Project.siteId` and `Project.companyId` are nullable in the Prisma schema. If no site is selected, the project is created with `siteId: null` and `companyId: null`, and the backend does not force a fallback site.
+- **Access Scope:** Projects without a site are treated as general/internal engineering projects and accessible to Engineers and Administrators.
 
 ---
 
@@ -50,7 +64,7 @@
   - **Left:** Official DF Automation logo mark + "DF Automation and robotics" label + "DF satellite" title. (Top site filter is removed from the navbar).
   - **Search Bar:** Completely removed from top bar.
   - **Top Bar Sections (Consistent Dimensions: `h-8 px-3 rounded-lg text-xs font-semibold`):**
-    - **`issue list`** button (all roles, links to `/feed`): Activates the operational issue feed and reveals the 2nd-level issue list left sidebar.
+    - **`issue list`** button (all roles, links to `/feed`): Activates the operational issue feed and reveals the 2nd-level issue list left sidebar. **Styling:** Styled with white background (`bg-white text-slate-700 hover:bg-slate-50 border border-slate-200`) when unselected (on `/task-overview`, `/project`, `/admin`, etc.), and solid black (`bg-slate-900 text-white`) strictly when inside the Issue List module.
     - **`task Overview`** button (Engineer & Admin, links to `/task-overview`): High-level consolidated task dashboard; **hides the left sidebar**.
     - **`project`** button (Engineer & Admin, links to `/project`): Project workspace; **reveals the Project left sidebar**.
     - **`Administration`** button (Admin only, links to `/admin`): Super Admin Console; **hides the left sidebar**.
@@ -63,7 +77,11 @@
         - **Customer Filter:** Dropdown at the top of the sidebar ("All Customers" + list of companies).
         - **Site Filter:** Dropdown positioned directly below Customer, cascading to only list sites for the selected customer (or all sites if "All Customers" is chosen).
         - **Active Output Filtering:** Selection immediately filters live outputs across Short Stops (`/feed`), Focus Board (`/focus`), QR codes (`/qr`), and Issue Tracker (`/issues` & `/portal/issues`).
-      - Navigation links: `Log Stop`, `Feed`, `Focus Board`, `Analytics`, `QR Codes`, `Log Issue`, `Issues`, `Settings`.
+      - **Distinct Short Stops vs Independent Issue Tracker Sub-Modules:**
+        - **Short Stops Section:** `Log Stop` (`/form`), `Feed` (`/feed`), `Focus Board` (`/focus`), `Analytics` (`/analytics`), `QR Codes` (`/qr`), `Settings` (`/settings`).
+          - Short Stop Analytics features a **"Management report"** executive printable report modal with KPI metrics, Pareto root cause table, period breakdown, and approval sign-offs, plus live period views (`Daily`, `Weekly`, `Monthly`, `Annually`) and range chips (`7d`, `30d`, `90d`, `6mo`, `1yr`, `All`) with a functioning **"Apply"** button.
+        - **Issue Tracker Section:** `Log Issue` (`/portal/log-issue`), `Issues` (`/issues`), `Focus Board` (`/issues/focus`), `Analytics` (`/issues/analytics`), `QR Codes` (`/issues/qr`), `Settings` (`/issues/settings`).
+          - Completely independent views dedicated to machine breakdown issues, severity Pareto charts, breakdown QR placards, SLA thresholds, and escalation routing.
     - When in **`project`**: Shows the Project left sidebar with 2 sections: **"My Task"** and **"Work"** (`+ Add Project` button and all created projects).
     - When clicking **`task Overview`** or **`Administration`**, the left sidebar is **strictly hidden**, giving full-width real estate to the dashboards.
 - **📱 Mobile Phone & Laptop Responsive Architecture:**
@@ -129,29 +147,29 @@ In the Super Admin Console (`/admin`), a dedicated **Customer Sites** tab enable
   - **Exact 5 Columns per Row (From Left to Right):**
     1. **the event:** Checkbox (Done/Undone) + event/task description.
     2. **assign:** Name of assigned engineer, with selector allowing to choose which engineer to do the task by name.
-    3. **duedate:** Target completion date (editable via date picker).
-    4. **actual finished data:** Actual completion date (editable date picker; auto-filled with current date when marked done).
+    3. **duedate:** Target completion date. Displayed with a guaranteed `DD/MM/YYYY` overlay container with calendar icon and native date picker.
+    4. **actual finished data:** Actual completion date. Displayed with a guaranteed `DD/MM/YYYY` overlay container. When delayed (later than due date), it is highlighted in **bold red** (`text-red-600 bg-red-50 border-red-200 font-bold`).
     5. **delay:** Schedule variance calculation:
-       - If no delay (completed on/before due date, or pending with due date in future, or custom note): note down **"no delay"** in an emerald badge.
-       - If delayed (completed after due date or past due): notes down **"+X days delay"** in a rose/amber badge.
+       - If no delay (completed on/before due date, or pending with due date in future, or custom note): notes down **`no delay`** in an emerald badge (`bg-emerald-50 text-emerald-700 border-emerald-200`).
+       - If delayed (actual finished date is later than due date, or pending past due date): notes down **`delayed (+Xd)`** in **bold red colour** (`bg-red-100 text-red-600 border border-red-200 font-bold`).
 
 ### 📡 Task Overview (`/task-overview`)
-- **Aborted Structure:** The previous FA Dashboard structure (`192.168.0.148:8090` proxy, DFA/DFI teams, weekly allocation calendar, engineer scoreboards) is completely aborted and removed.
-- **Streamlined Layout (KPI Stat Cards on Top + Full Gantt Chart Below):**
-  - **No Intermediate Header Bar:** The bar between the top navbar and the Gantt chart is completely removed.
-  - **1. KPI Metric Summary Cards (Top of Page):**
-    - 6 cards: **Total Tasks**, **Open Actions**, **Milestones**, **Issues**, **Delayed**, and **Completed**.
-  - **2. Full Interactive Milestone Gantt Chart (Directly Below KPI Cards):**
-    - **Y-Axis:** Displays all current and dummy projects created in the "Project" module (e.g. CAG Project Phase 2, Honda Melaka AMR, Dyson Senai Carrier, Top Glove Banting AMR, Western Digital Wafer AGV, Proton Johor, etc.).
-    - **Timeline (X-Axis):** Spans all project timelines with monthly/weekly ticks and a prominent vertical "Today" indicator line.
-    - **Continuous Timeline Track:** Shows an unbroken continuous line starting from project initialization date (`startDate`) across each milestone's target due date (`d/M/yyyy`).
-    - **Dynamic Milestone Achievement Color Progression:**
-      - **Light Color Segment:** Soft light color (`bg-blue-100` / `border-blue-200`) for planned/pending milestones.
-      - **Dark Color Segment:** Turns dark color (`bg-blue-700`) up to the latest completed milestone (`isDone: true`).
-      - **Milestone Nodes:** Emerald node with checkmark (`✓`) for completed milestones; circular node for upcoming milestones with hover tooltips and interactive detail modal (all dates formatted as `d/M/yyyy`).
-  - **Removed Elements:**
-    - The search input and filter dropdown bar below the Gantt chart is completely removed.
-    - The component task table below the Gantt chart is completely removed.
+- **Page Title:** **Task Overview** with descriptive subtitle.
+- **Three-Tier Consolidated Architecture:**
+  - **1. "Summary" Section:**
+    - Explicit section heading: `Summary`.
+    - 6 KPI summary cards: **Total Tasks**, **Open Actions**, **Milestones**, **Issues**, **Delayed**, and **Completed**.
+  - **2. "Gantt Chart" Section:**
+    - Explicit section heading: `Gantt Chart`.
+    - Full interactive multi-project milestone Gantt chart with continuous progress track, milestone completion status progression (dark vs light segments), today indicator line, and milestone details modal.
+  - **3. Lower Two-Column Section (Directly Below Gantt Chart):**
+    - **Left Section — "Current Engineer Workload":**
+      - Tracks active workloads across all field deployment engineers.
+      - Each engineer card displays: avatar/initials, name, workload intensity badge (`Heavy Load`, `Moderate`, `Light`, `Available`), active vs completed vs overdue counts, visual completion progress bar (`emerald` for completed, `rose` for overdue), and category badges (Open Actions, Milestones, Issues).
+    - **Right Section — "Overdue Task":**
+      - High-visibility list of incomplete tasks that are past their due date (`!isDone` and schedule variance is delayed).
+      - Displays: interactive Done checkbox (allowing 1-click completion directly from overview), event description, clickable project link (`/project?id=...`), section badge (Open Action, Milestone, Issue), assigned engineer, due date (strictly `d/M/yyyy`), and delay duration badge (`+X days delay`).
+      - Clean empty state with checkmark illustration when no overdue tasks exist.
 
 ---
 
@@ -178,7 +196,7 @@ Matching DF Automation corporate standards, the runtime database is strictly dec
 * **Styling:** Tailwind CSS + Lucide Icons
 * **Charts:** Recharts (Monthly stoppage frequencies & Pareto category distribution)
 * **Database ORM:** Prisma Client with SQLite (`Database/data/satellite.db`)
-* **Network Binding:** Binds to `0.0.0.0` on port `3000` with automatic host LAN IP detection.
+* **Network Binding:** Binds to `0.0.0.0` on port `3001` with automatic host LAN IP detection.
 
 ```
 DF_satellite/
@@ -192,7 +210,7 @@ DF_satellite/
 ├── scripts/
 │   ├── export_database.sh    # Database export & packaging script
 │   ├── import_database.sh    # Database restore script
-│   └── seed.ts               # Pre-seeded test data (Proton, Perodua, ST Muar, admin account)
+│   └── seed.ts               # Database initialization (creates admin, 5 engineers: eng1-eng5, 3 customers: cus1-cus3, and siteA-siteF)
 │
 ├── src/
 │   ├── app/
@@ -225,7 +243,7 @@ DF_satellite/
 │
 ├── export.sh / export.bat    # Quick database export shortcuts
 ├── import.sh / import.bat    # Quick database import shortcuts
-├── start.sh / start.bat      # Launches production server on port 3000
+├── start.sh / start.bat      # Launches production server on port 3001
 ├── stop.sh                   # Graceful shutdown script
 ├── PROJECT_CONTEXT.md        # Technical reference
 ├── SESSION_REFERENCE.md      # This file (Must be updated on every change!)
@@ -236,9 +254,17 @@ DF_satellite/
 
 ## 🔑 8. Initial Credentials & User Management
 
-| Username | Password | Role | Permissions |
+| Username | Password | Role | Permissions / Scoping |
 | :--- | :--- | :--- | :--- |
-| `admin` | `df` | **ADMIN** | System Administrator. Only master account. Provisions Customer and Engineer accounts, provisions Customer Sites, assigns site scoping, registers fleet equipment. |
+| `admin` | `df` | **ADMIN** | System Administrator. Provisions Customer and Engineer accounts, customer sites, site scoping, and fleet. |
+| `eng1` | `111` | **ENGINEER** | Field Engineer. Global access across all customer sites and projects. |
+| `eng2` | `111` | **ENGINEER** | Field Engineer. Global access across all customer sites and projects. |
+| `eng3` | `111` | **ENGINEER** | Field Engineer. Global access across all customer sites and projects. |
+| `eng4` | `111` | **ENGINEER** | Field Engineer. Global access across all customer sites and projects. |
+| `eng5` | `111` | **ENGINEER** | Field Engineer. Global access across all customer sites and projects. |
+| `cus1` | `111` | **CUSTOMER** | Customer 1. Scoped to `siteA`. |
+| `cus2` | `111` | **CUSTOMER** | Customer 2. Scoped to `siteB` and `siteC`. |
+| `cus3` | `111` | **CUSTOMER** | Customer 3. Scoped to `siteD`, `siteE`, and `siteF`. |
 
 > **Single Device & No Fast Switching:**
 > - Switching persona without logging out is permanently disabled.
@@ -250,7 +276,7 @@ DF_satellite/
 ## 🛠️ 9. Operational Commands Quick Reference
 
 ```bash
-# Start the server (binds to 0.0.0.0:3000)
+# Start the server (binds to 0.0.0.0:3001)
 ./start.sh
 
 # Stop the server

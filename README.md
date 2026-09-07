@@ -80,22 +80,19 @@ Or for local development:
 npm run dev
 ```
 
-The web application binds to `0.0.0.0` on port `3000`, making it immediately accessible to any tablet or laptop on the local Wi-Fi / LAN (`http://<YOUR_LAN_IP>:3000`).
+The web application binds to `0.0.0.0` on port `3001`, making it immediately accessible to any tablet or laptop on the local Wi-Fi / LAN (`http://<YOUR_LAN_IP>:3001`).
 
 ---
 
-## 🔑 Pre-Configured Demo Accounts
+## 🔑 System Accounts & Credentials
 
 | Role | Username | Password | Notes & Scope Constraint |
 | :--- | :--- | :--- | :--- |
-| **Field Engineer (Lead)** | `engineer` | `eng123` | **Google Account Linked** (`engineer.lead@gmail.com`). Access to Asana Portfolio and all customer sites. |
-| **Field Engineer (Intern)** | `intern` | `intern123` | Engineer role (Field Deployment Intern Ahmad). |
-| **System Admin** | `admin` | `admin123` | Full control: Add new customers, engineers/interns, and assign site access. |
-| **Customer: Proton** | `proton` | `proton123` | **Scoped**: Strictly sees Proton Johor (10 AGVs) & Proton Penang (3 ARVs). |
-| **Customer: Perodua**| `perodua`| `perodua123`| **Scoped**: Strictly sees Perodua Rawang (4 AMRs). |
-| **Customer: ST Muar**| `stmuar`  | `stmuar123` | **Scoped**: Cleanroom facility (6 AGVs/ARVs). |
-
-*(You can also use the **"Switch Persona"** button in the top navigation bar to test any role with one click without logging out).*
+| **System Admin** | `admin` | `df` | Master System Administrator. Full access to Super Admin Console (`/admin`), site management, and user provisioning. |
+| **Field Engineer** | `eng1` – `eng5` | `111` | Engineers with global access across all customer sites and projects. |
+| **Customer: cus1** | `cus1` | `111` | Scoped to `siteA`. |
+| **Customer: cus2** | `cus2` | `111` | Scoped to `siteB` and `siteC`. |
+| **Customer: cus3** | `cus3` | `111` | Scoped to `siteD`, `siteE`, and `siteF`. |
 
 ---
 

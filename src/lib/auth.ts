@@ -64,7 +64,7 @@ export function setSessionCookie(user: SessionUser) {
   const serialized = serializeSession(user);
   cookies().set(COOKIE_NAME, serialized, {
     httpOnly: true,
-    // Must be false on HTTP LAN IP (http://192.168.x.x:3000) so browsers on other devices don't drop the cookie
+    // Must be false on HTTP LAN IP (http://192.168.x.x:3001) so browsers on other devices don't drop the cookie
     secure: process.env.SECURE_COOKIES === "true",
     sameSite: "lax",
     path: "/",

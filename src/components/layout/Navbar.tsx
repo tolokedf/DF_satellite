@@ -42,10 +42,13 @@ export default function Navbar({ currentUser }: NavbarProps) {
   };
 
   const isIssueListActive = !pathname.startsWith("/current-status") &&
+                            !pathname.startsWith("/task-overview") &&
                             !pathname.startsWith("/portfolio") &&
+                            !pathname.startsWith("/project") &&
                             !pathname.startsWith("/projects") &&
                             !pathname.startsWith("/admin") &&
-                            !pathname.startsWith("/my-role");
+                            !pathname.startsWith("/my-role") &&
+                            pathname !== "/login";
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -82,7 +85,7 @@ export default function Navbar({ currentUser }: NavbarProps) {
               className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition ${
                 isIssueListActive
                   ? "bg-slate-900 text-white shadow-sm border border-slate-900"
-                  : "text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200"
+                  : "text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs"
               }`}
             >
               <ClipboardList className="w-3.5 h-3.5" />
@@ -96,7 +99,7 @@ export default function Navbar({ currentUser }: NavbarProps) {
                 className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition ${
                   pathname.startsWith("/task-overview") || pathname.startsWith("/current-status")
                     ? "bg-teal-600 text-white shadow-sm border border-teal-600"
-                    : "text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200"
+                    : "text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs"
                 }`}
               >
                 <Activity className="w-3.5 h-3.5" />

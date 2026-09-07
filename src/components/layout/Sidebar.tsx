@@ -89,7 +89,6 @@ export default function Sidebar({ user }: SidebarProps) {
         .then((data) => {
           if (Array.isArray(data)) {
             setSites(data);
-            if (data.length > 0) setNewProjectSiteId(data[0].id);
           }
         })
         .catch(() => {});
@@ -121,6 +120,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
       setNewProjectName("");
       setNewProjectCode("");
+      setNewProjectSiteId("");
       setShowAddProjectModal(false);
       window.dispatchEvent(new Event("projects-updated"));
       router.push(`/project?id=${created.id}`);
@@ -315,7 +315,7 @@ export default function Sidebar({ user }: SidebarProps) {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. CAG Project"
+                    placeholder="e.g. Factory AGV Deployment"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -329,7 +329,7 @@ export default function Sidebar({ user }: SidebarProps) {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. PRJ-CAG-01 (auto-generated if blank)"
+                    placeholder="e.g. PRJ-01 (auto-generated if blank)"
                     value={newProjectCode}
                     onChange={(e) => setNewProjectCode(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -346,6 +346,7 @@ export default function Sidebar({ user }: SidebarProps) {
                       onChange={(e) => setNewProjectSiteId(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
+                      <option value="">No site (Internal / General)</option>
                       {sites.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.company?.name ? `${s.company.name} - ${s.name}` : s.name}
@@ -383,6 +384,25 @@ export default function Sidebar({ user }: SidebarProps) {
   // 2. ISSUE LIST SIDEBAR (Existing 2nd Level Navigation)
   // =========================================================================
   const isActive = (href: string) => {
+    const currentMode = searchParams.get("mode");
+    const isIssueMode = currentMode === "issues" || pathname.startsWith("/issues");
+
+    // If this is an issue-tracker specific link
+    if (href.includes("mode=issues") || href.startsWith("/issues") || href.startsWith("/portal/issues") || href === "/portal/log-issue") {
+      if (href === "/portal/log-issue") return pathname === "/portal/log-issue";
+      if (href === "/portal/issues" || href === "/issues") return (pathname === "/portal/issues" || pathname === "/issues") && !currentMode;
+      if (href.includes("focus")) return isIssueMode && pathname.includes("focus");
+      if (href.includes("analytics")) return isIssueMode && pathname.includes("analytics");
+      if (href.includes("qr")) return isIssueMode && pathname.includes("qr");
+      if (href.includes("settings")) return isIssueMode && pathname.includes("settings");
+      return false;
+    }
+
+    // Short stops links should NOT match when in issue mode
+    if (isIssueMode) {
+      return false;
+    }
+
     if (href === "/form" || href === "/portal/log-stop") {
       return pathname === "/form" || pathname === "/portal/log-stop";
     }
@@ -390,22 +410,16 @@ export default function Sidebar({ user }: SidebarProps) {
       return pathname === "/feed" || pathname === "/portal/feed";
     }
     if (href === "/focus" || href === "/portal/focus") {
-      return pathname === "/focus" || pathname === "/portal/focus";
+      return (pathname === "/focus" || pathname === "/portal/focus") && !currentMode;
     }
     if (href === "/analytics" || href === "/portal/analytics") {
-      return pathname === "/analytics" || pathname === "/portal/analytics";
+      return (pathname === "/analytics" || pathname === "/portal/analytics") && !currentMode;
     }
     if (href === "/qr" || href === "/portal/qr") {
-      return pathname === "/qr" || pathname === "/portal/qr";
+      return (pathname === "/qr" || pathname === "/portal/qr") && !currentMode;
     }
     if (href === "/settings" || href === "/portal/settings") {
-      return pathname === "/settings" || pathname === "/portal/settings";
-    }
-    if (href === "/portal/log-issue") {
-      return pathname === "/portal/log-issue";
-    }
-    if (href === "/portal/issues" || href === "/issues") {
-      return pathname === "/portal/issues" || pathname === "/issues";
+      return (pathname === "/settings" || pathname === "/portal/settings") && !currentMode;
     }
     return pathname === href;
   };
@@ -518,9 +532,21 @@ export default function Sidebar({ user }: SidebarProps) {
             <span>QR Codes</span>
           </Link>
           <Link
+            href="/settings"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/settings") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <Settings className="w-3 h-3" />
+            <span>Settings</span>
+          </Link>
+
+          <span className="text-slate-300">|</span>
+
+          <Link
             href="/portal/log-issue"
             className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-              isActive("/portal/log-issue") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              isActive("/portal/log-issue") ? "bg-rose-600 text-white shadow-xs" : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
             }`}
           >
             <Plus className="w-3 h-3" />
@@ -529,20 +555,47 @@ export default function Sidebar({ user }: SidebarProps) {
           <Link
             href="/portal/issues"
             className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-              isActive("/portal/issues") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              isActive("/portal/issues") ? "bg-rose-600 text-white shadow-xs" : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
             }`}
           >
             <AlertTriangle className="w-3 h-3" />
             <span>Issues</span>
           </Link>
           <Link
-            href="/settings"
+            href="/focus?mode=issues"
             className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
-              isActive("/settings") ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              isActive("/focus?mode=issues") ? "bg-rose-600 text-white shadow-xs" : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+            }`}
+          >
+            <Target className="w-3 h-3" />
+            <span>Issue Focus</span>
+          </Link>
+          <Link
+            href="/analytics?mode=issues"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/analytics?mode=issues") ? "bg-rose-600 text-white shadow-xs" : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+            }`}
+          >
+            <BarChart2 className="w-3 h-3" />
+            <span>Issue Analytics</span>
+          </Link>
+          <Link
+            href="/qr?mode=issues"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/qr?mode=issues") ? "bg-rose-600 text-white shadow-xs" : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+            }`}
+          >
+            <QrCode className="w-3 h-3" />
+            <span>Issue QR</span>
+          </Link>
+          <Link
+            href="/settings?mode=issues"
+            className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
+              isActive("/settings?mode=issues") ? "bg-rose-600 text-white shadow-xs" : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
             }`}
           >
             <Settings className="w-3 h-3" />
-            <span>Settings</span>
+            <span>Issue Settings</span>
           </Link>
         </div>
       </div>

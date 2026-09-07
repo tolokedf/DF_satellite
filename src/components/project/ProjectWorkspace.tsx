@@ -183,14 +183,22 @@ export default function ProjectWorkspace() {
     customNote?: string | null
   ) => {
     if (customNote && customNote.trim().toLowerCase() === "no delay") {
-      return { text: "no delay", isDelayed: false };
+      return { text: "no delay", isDelayed: false, diffDays: 0 };
     }
     if (!dueDateStr) {
-      return { text: "no delay", isDelayed: false };
+      return { text: "no delay", isDelayed: false, diffDays: 0 };
     }
 
     const dueDate = new Date(dueDateStr);
-    const finishDate = isDone && actualFinishedDateStr ? new Date(actualFinishedDateStr) : new Date();
+    const finishDate = actualFinishedDateStr
+      ? new Date(actualFinishedDateStr)
+      : isDone
+      ? null
+      : new Date();
+
+    if (!finishDate) {
+      return { text: "no delay", isDelayed: false, diffDays: 0 };
+    }
 
     const dDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
     const dFinish = new Date(finishDate.getFullYear(), finishDate.getMonth(), finishDate.getDate()).getTime();
@@ -198,9 +206,9 @@ export default function ProjectWorkspace() {
     const diffDays = Math.round((dFinish - dDue) / (1000 * 60 * 60 * 24));
 
     if (diffDays > 0) {
-      return { text: `+${diffDays} days delay`, isDelayed: true };
+      return { text: `delayed (+${diffDays}d)`, isDelayed: true, diffDays };
     } else {
-      return { text: "no delay", isDelayed: false };
+      return { text: "no delay", isDelayed: false, diffDays: 0 };
     }
   };
 
@@ -451,13 +459,21 @@ export default function ProjectWorkspace() {
               </select>
             </div>
 
-            <div className="w-36">
-              <input
-                type="date"
-                value={newDueDate}
-                onChange={(e) => setNewDueDate(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
+            <div className="w-40">
+              <div className="relative inline-flex items-center w-full">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 w-full">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="font-mono text-[11px]">
+                    {newDueDate ? format(new Date(newDueDate), "dd/MM/yyyy") : <span className="text-slate-400 font-sans">Select date</span>}
+                  </span>
+                </div>
+                <input
+                  type="date"
+                  value={newDueDate}
+                  onChange={(e) => setNewDueDate(e.target.value)}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                />
+              </div>
             </div>
 
             <button
@@ -552,32 +568,57 @@ export default function ProjectWorkspace() {
 
                       {/* Column 3: Due Date */}
                       <td className="py-2.5 px-3 align-middle">
-                        <input
-                          type="date"
-                          value={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
-                          onChange={(e) => handleDueDateChange(task, e.target.value)}
-                          className="bg-transparent hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded px-1.5 py-0.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                        />
+                        <div className="relative inline-flex items-center">
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs text-slate-700 min-w-[110px]">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="font-mono text-[11px] font-medium">
+                              {task.dueDate ? format(new Date(task.dueDate), "dd/MM/yyyy") : <span className="text-slate-400 font-sans">Select date</span>}
+                            </span>
+                          </div>
+                          <input
+                            type="date"
+                            value={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
+                            onChange={(e) => handleDueDateChange(task, e.target.value)}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                        </div>
                       </td>
 
                       {/* Column 4: Actual Finished Date */}
                       <td className="py-2.5 px-3 align-middle">
-                        <input
-                          type="date"
-                          value={task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "yyyy-MM-dd") : ""}
-                          onChange={(e) => handleFinishedDateChange(task, e.target.value)}
-                          placeholder="—"
-                          className={`bg-transparent hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer ${
-                            task.actualFinishedDate ? "text-emerald-700 font-medium" : "text-slate-400"
-                          }`}
-                        />
+                        <div className="relative inline-flex items-center">
+                          <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs min-w-[110px] border ${
+                            delay.isDelayed && task.actualFinishedDate
+                              ? "bg-red-50 border-red-200 text-red-600 font-bold"
+                              : task.actualFinishedDate
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold"
+                              : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-400"
+                          }`}>
+                            <Calendar className={`w-3.5 h-3.5 shrink-0 ${
+                              delay.isDelayed && task.actualFinishedDate
+                                ? "text-red-500"
+                                : task.actualFinishedDate
+                                ? "text-emerald-500"
+                                : "text-slate-400"
+                            }`} />
+                            <span className="font-mono text-[11px]">
+                              {task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "dd/MM/yyyy") : <span className="font-sans italic text-slate-400">Set date</span>}
+                            </span>
+                          </div>
+                          <input
+                            type="date"
+                            value={task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "yyyy-MM-dd") : ""}
+                            onChange={(e) => handleFinishedDateChange(task, e.target.value)}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                        </div>
                       </td>
 
-                      {/* Column 5: Delay (if no delay then note down 'no delay') */}
+                      {/* Column 5: Delay */}
                       <td className="py-2.5 px-3 align-middle">
                         {delay.isDelayed ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            {delay.text}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-600 border border-red-200">
+                            delayed {delay.diffDays > 0 ? `(+${delay.diffDays}d)` : ""}
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -745,26 +786,26 @@ export default function ProjectWorkspace() {
                         </td>
 
                         {/* Column 3: Due Date */}
-                        <td className="py-3 px-3 align-middle text-slate-600">
-                          {task.dueDate ? format(new Date(task.dueDate), "d/M/yyyy") : "—"}
+                        <td className="py-3 px-3 align-middle text-slate-600 font-mono text-xs">
+                          {task.dueDate ? format(new Date(task.dueDate), "dd/MM/yyyy") : "—"}
                         </td>
 
                         {/* Column 4: Actual Finished Date */}
-                        <td className="py-3 px-3 align-middle">
+                        <td className="py-3 px-3 align-middle font-mono text-xs">
                           {task.actualFinishedDate ? (
-                            <span className="text-emerald-700 font-semibold">
-                              {format(new Date(task.actualFinishedDate), "d/M/yyyy")}
+                            <span className={delay.isDelayed ? "text-red-600 font-bold" : "text-emerald-700 font-semibold"}>
+                              {format(new Date(task.actualFinishedDate), "dd/MM/yyyy")}
                             </span>
                           ) : (
-                            <span className="text-slate-400 italic">Pending</span>
+                            <span className="text-slate-400 italic font-sans">Pending</span>
                           )}
                         </td>
 
                         {/* Column 5: Delay */}
                         <td className="py-3 px-3 align-middle">
                           {delay.isDelayed ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              {delay.text}
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-600 border border-red-200">
+                              delayed {delay.diffDays > 0 ? `(+${delay.diffDays}d)` : ""}
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">

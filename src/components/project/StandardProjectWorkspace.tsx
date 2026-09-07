@@ -167,7 +167,14 @@ export default function StandardProjectWorkspace({ project, onRefresh }: Standar
               <span className="text-slate-300">•</span>
               <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                {project.company?.name} ({project.site?.name})
+                {project.company?.name || project.site?.name ? (
+                  <>
+                    {project.company?.name}
+                    {project.site?.name ? ` (${project.site.name})` : ""}
+                  </>
+                ) : (
+                  "General / No Site"
+                )}
               </span>
               <span className="text-slate-300">•</span>
               <span
@@ -226,7 +233,7 @@ export default function StandardProjectWorkspace({ project, onRefresh }: Standar
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-bold">Target Go-Live</span>
             <span className="font-semibold text-slate-800">
-              {project.targetGoLive ? format(new Date(project.targetGoLive), "d/M/yyyy") : "TBD"}
+              {project.targetGoLive ? format(new Date(project.targetGoLive), "dd/MM/yyyy") : "TBD"}
             </span>
           </div>
           <div>
@@ -384,7 +391,7 @@ export default function StandardProjectWorkspace({ project, onRefresh }: Standar
                       </span>
                     </td>
                     <td className="py-3 px-3 text-slate-600">
-                      {item.targetDate ? format(new Date(item.targetDate), "d/M/yyyy") : "-"}
+                      {item.targetDate ? format(new Date(item.targetDate), "dd/MM/yyyy") : "-"}
                     </td>
                     <td className="py-3 px-3 text-center">
                       <select
@@ -541,7 +548,7 @@ export default function StandardProjectWorkspace({ project, onRefresh }: Standar
                 {shortStops.map((stop: any) => (
                   <tr key={stop.id} className="hover:bg-slate-50/80 transition">
                     <td className="py-3 px-3 text-slate-600">
-                      {format(new Date(stop.startTime), "d/M/yyyy HH:mm")}
+                      {format(new Date(stop.startTime), "dd/MM/yyyy HH:mm")}
                     </td>
                     <td className="py-3 px-3 font-bold text-slate-900">{stop.robot?.code}</td>
                     <td className="py-3 px-3 font-medium text-slate-800">
@@ -592,7 +599,7 @@ export default function StandardProjectWorkspace({ project, onRefresh }: Standar
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="text-[11px] font-bold text-blue-600 mb-1">
-                      {format(new Date(mom.meetingDate), "d/M/yyyy")}
+                      {format(new Date(mom.meetingDate), "dd/MM/yyyy")}
                     </div>
                     <h3 className="text-sm font-bold text-slate-900">{mom.title}</h3>
                     <div className="text-xs text-slate-500 mt-1">
@@ -656,7 +663,7 @@ export default function StandardProjectWorkspace({ project, onRefresh }: Standar
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="text-xs font-bold text-slate-900">
-                      {format(new Date(dar.reportDate), "d/M/yyyy (EEEE)")}
+                      {format(new Date(dar.reportDate), "dd/MM/yyyy (EEEE)")}
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
                       {dar.shift} SHIFT

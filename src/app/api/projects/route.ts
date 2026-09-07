@@ -57,13 +57,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Project name is required" }, { status: 400 });
     }
 
-    let companyId = body.companyId;
-    let siteId = body.siteId;
-    if (!companyId || !siteId) {
-      const firstSite = await prisma.site.findFirst();
-      if (firstSite) {
-        siteId = siteId || firstSite.id;
-        companyId = companyId || firstSite.companyId;
+    let companyId = body.companyId || null;
+    let siteId = body.siteId || null;
+    if (siteId && !companyId) {
+      const site = await prisma.site.findUnique({ where: { id: siteId } });
+      if (site) {
+        companyId = site.companyId;
       }
     }
 

@@ -40,17 +40,21 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     }
 
     // Permission check for customer
-    if (user && user.role === "CUSTOMER" && !user.assignedSiteIds.includes(project.siteId)) {
-      return NextResponse.json({ error: "Access denied to this site project" }, { status: 403 });
+    if (user && user.role === "CUSTOMER") {
+      if (!project.siteId || !user.assignedSiteIds.includes(project.siteId)) {
+        return NextResponse.json({ error: "Access denied to this site project" }, { status: 403 });
+      }
     }
 
-    // Also fetch recent short stops for this site
-    const shortStops = await prisma.shortStopLog.findMany({
-      where: { siteId: project.siteId },
-      include: { robot: true },
-      orderBy: { startTime: "desc" },
-      take: 50,
-    });
+    // Also fetch recent short stops for this site if assigned to a site
+    const shortStops = project.siteId
+      ? await prisma.shortStopLog.findMany({
+          where: { siteId: project.siteId },
+          include: { robot: true },
+          orderBy: { startTime: "desc" },
+          take: 50,
+        })
+      : [];
 
     return NextResponse.json({ ...project, shortStops });
   } catch (error: any) {

@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Bot, TrendingUp, TrendingDown, Clock, MapPin } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Bot, TrendingUp, TrendingDown, Clock, MapPin, CheckCircle2 } from "lucide-react";
 import { useSite } from "@/context/SiteContext";
+import { format, subDays } from "date-fns";
 
 const RANGE_OPTIONS = ["7d", "30d", "90d", "6mo", "1yr", "All"];
 
 interface FocusCard {
   id: string;
   category: string;
+  team: "FIELD" | "RND" | "CUSTOMER";
   status: "Active" | "Rising" | "Fixed";
   stopsCount: number;
   durationFormatted: string;
+  durationMinutes: number;
   recentCount: number;
   robotLabel: string;
   lastDate: string;
@@ -20,129 +23,188 @@ interface FocusCard {
 }
 
 export default function FocusBoardView() {
-  const { currentSiteId } = useSite();
+  const { currentSiteId, currentCustomerId, currentCustomerName } = useSite();
   const [selectedRange, setSelectedRange] = useState("90d");
-  const [loading, setLoading] = useState(false);
+  const [stops, setStops] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Field Team Cards (Onsite short-term resolution)
-  const fieldCards: FocusCard[] = [
-    {
-      id: "f1",
-      category: "Panel Transfer Stuck",
-      status: "Active",
-      stopsCount: 52,
-      durationFormatted: "2h 2m",
-      recentCount: 52,
-      robotLabel: "AGV 2 · 60 slot",
-      lastDate: "2026-07-28",
-      trendPath: "M0,25 Q15,20 30,12 T60,5 T90,20 T100,22",
-      accentColor: "orange",
-    },
-    {
-      id: "f2",
-      category: "Docking",
-      status: "Active",
-      stopsCount: 11,
-      durationFormatted: "55m",
-      recentCount: 11,
-      robotLabel: "AGV 2 · 60 slot",
-      lastDate: "2026-07-28",
-      trendPath: "M0,28 Q20,25 40,15 T80,10 T100,20",
-      accentColor: "orange",
-    },
-    {
-      id: "f3",
-      category: "Stopper not going down",
-      status: "Active",
-      stopsCount: 8,
-      durationFormatted: "42m",
-      recentCount: 8,
-      robotLabel: "AGV 13 · Ur output",
-      lastDate: "2026-08-26",
-      trendPath: "M0,20 Q30,10 60,18 T100,12",
-      accentColor: "orange",
-    },
-  ];
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (currentSiteId && currentSiteId !== "ALL") {
+      params.append("siteId", currentSiteId);
+    } else if (currentCustomerId && currentCustomerId !== "ALL") {
+      params.append("companyId", currentCustomerId);
+    }
+    params.append("limit", "500");
 
-  // R&D Team Cards (Permanent fix)
-  const rdCards: FocusCard[] = [
-    {
-      id: "r1",
-      category: "Map Jump",
-      status: "Active",
-      stopsCount: 3,
-      durationFormatted: "15m",
-      recentCount: 3,
-      robotLabel: "ARV 1 · Zc entry door to mold",
-      lastDate: "2026-07-04",
-      trendPath: "M0,22 Q25,25 50,18 T80,12 T100,24",
-      accentColor: "blue",
-    },
-    {
-      id: "r2",
-      category: "Traffic",
-      status: "Fixed",
-      stopsCount: 4,
-      durationFormatted: "20m",
-      recentCount: 4,
-      robotLabel: "ARV 7 · Mold",
-      lastDate: "2026-07-10",
-      trendPath: "M0,10 Q30,12 60,22 T100,28",
-      accentColor: "green",
-    },
-    {
-      id: "r3",
-      category: "Livox Malfunction",
-      status: "Active",
-      stopsCount: 2,
-      durationFormatted: "10m",
-      recentCount: 2,
-      robotLabel: "AGV 10 · Zc",
-      lastDate: "2026-08-26",
-      trendPath: "M0,18 Q40,15 80,12 T100,14",
-      accentColor: "blue",
-    },
-  ];
+    fetch(`/api/short-stops?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setStops(data);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [currentSiteId, currentCustomerId]);
 
-  // ST Customer Team Cards (Customer-side operation)
-  const stCards: FocusCard[] = [
-    {
-      id: "s1",
-      category: "Machine Issue",
-      status: "Rising",
-      stopsCount: 11,
-      durationFormatted: "1h 50m",
-      recentCount: 11,
-      robotLabel: "ARV 8 · Buffer 60",
-      lastDate: "2026-08-25",
-      trendPath: "M0,28 Q30,22 60,12 T100,5",
-      accentColor: "red",
-    },
-    {
-      id: "s2",
-      category: "Operation Issue",
-      status: "Fixed",
-      stopsCount: 40,
-      durationFormatted: "3h 40m",
-      recentCount: 40,
-      robotLabel: "AGV 1 · Air Shower",
-      lastDate: "2026-08-20",
-      trendPath: "M0,8 Q35,15 70,24 T100,29",
-      accentColor: "green",
-    },
-    {
-      id: "s3",
-      category: "Gripper Issue",
-      status: "Rising",
-      stopsCount: 6,
-      durationFormatted: "35m",
-      recentCount: 6,
-      robotLabel: "ARV 10 · Smart rack 5",
-      lastDate: "2026-08-25",
-      trendPath: "M0,26 Q40,20 70,10 T100,6",
-      accentColor: "red",
-    },
-  ];
+  const filteredStops = useMemo(() => {
+    const now = new Date();
+    let minTime = 0;
+    if (selectedRange === "7d") minTime = subDays(now, 7).getTime();
+    else if (selectedRange === "30d") minTime = subDays(now, 30).getTime();
+    else if (selectedRange === "90d") minTime = subDays(now, 90).getTime();
+    else if (selectedRange === "6mo") minTime = subDays(now, 180).getTime();
+    else if (selectedRange === "1yr") minTime = subDays(now, 365).getTime();
+
+    return stops.filter((s) => {
+      if (!minTime) return true;
+      return new Date(s.startTime).getTime() >= minTime;
+    });
+  }, [stops, selectedRange]);
+
+  const { fieldCards, rdCards, customerCards, fieldStats, rdStats, customerStats } = useMemo(() => {
+    const isRdCategory = (cat: string) => {
+      const lower = cat.toLowerCase();
+      return (
+        lower.includes("map") ||
+        lower.includes("livox") ||
+        lower.includes("software") ||
+        lower.includes("traffic") ||
+        lower.includes("firmware") ||
+        lower.includes("algo") ||
+        lower.includes("lidar") ||
+        lower.includes("nav")
+      );
+    };
+
+    const isCustomerCategory = (cat: string) => {
+      const lower = cat.toLowerCase();
+      return (
+        lower.includes("machine") ||
+        lower.includes("operation") ||
+        lower.includes("facility") ||
+        lower.includes("rack") ||
+        lower.includes("conveyor") ||
+        lower.includes("station") ||
+        lower.includes("power") ||
+        lower.includes("operator")
+      );
+    };
+
+    const catMap = new Map<string, any[]>();
+    filteredStops.forEach((s) => {
+      const cat = s.category || "General Stop";
+      const list = catMap.get(cat) || [];
+      list.push(s);
+      catMap.set(cat, list);
+    });
+
+    const now = new Date();
+    const sevenDaysAgo = subDays(now, 7).getTime();
+    const fourteenDaysAgo = subDays(now, 14).getTime();
+
+    const formatDuration = (mins: number) => {
+      if (mins < 60) return `${Math.round(mins)}m`;
+      const h = Math.floor(mins / 60);
+      const m = Math.round(mins % 60);
+      return `${h}h ${m}m`;
+    };
+
+    const cards: FocusCard[] = [];
+
+    Array.from(catMap.entries()).forEach(([cat, catStops], idx) => {
+      let team: "FIELD" | "RND" | "CUSTOMER" = "FIELD";
+      if (isRdCategory(cat)) team = "RND";
+      else if (isCustomerCategory(cat)) team = "CUSTOMER";
+
+      const count = catStops.length;
+      const totalMins = catStops.reduce(
+        (sum: number, s: any) => sum + (Number(s.durationMinutes) || 1),
+        0
+      );
+      const recent = catStops.filter(
+        (s: any) => new Date(s.startTime).getTime() >= fourteenDaysAgo
+      ).length;
+      const lastWeek = catStops.filter(
+        (s: any) => new Date(s.startTime).getTime() >= sevenDaysAgo
+      ).length;
+
+      // Sort by date descending
+      catStops.sort(
+        (a: any, b: any) =>
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+      );
+      const latest = catStops[0];
+      const lastDate = latest
+        ? format(new Date(latest.startTime), "dd/MM/yyyy")
+        : "-";
+      const robotLabel = latest
+        ? `${latest.robot?.code || "Robot"} · ${
+            latest.specificLocation || latest.zone || "Main floor"
+          }`
+        : "Robot";
+
+      let status: "Active" | "Rising" | "Fixed" = "Active";
+      let accentColor: "orange" | "blue" | "red" | "green" =
+        team === "RND" ? "blue" : "orange";
+
+      if (lastWeek > 0 && lastWeek >= count * 0.4) {
+        status = "Rising";
+        accentColor = "red";
+      } else if (recent === 0) {
+        status = "Fixed";
+        accentColor = "green";
+      }
+
+      cards.push({
+        id: `card-${idx}-${cat}`,
+        category: cat,
+        team,
+        status,
+        stopsCount: count,
+        durationFormatted: formatDuration(totalMins),
+        durationMinutes: totalMins,
+        recentCount: recent,
+        robotLabel,
+        lastDate,
+        trendPath:
+          status === "Rising"
+            ? "M0,28 Q30,22 60,12 T100,5"
+            : status === "Fixed"
+            ? "M0,8 Q35,15 70,24 T100,29"
+            : "M0,20 Q30,10 60,18 T100,12",
+        accentColor,
+      });
+    });
+
+    const fCards = cards.filter((c) => c.team === "FIELD");
+    const rCards = cards.filter((c) => c.team === "RND");
+    const cCards = cards.filter((c) => c.team === "CUSTOMER");
+
+    const getStats = (teamCards: FocusCard[]) => {
+      const totalStops = teamCards.reduce((acc, c) => acc + c.stopsCount, 0);
+      const totalMins = teamCards.reduce((acc, c) => acc + c.durationMinutes, 0);
+      const needFocus = teamCards.filter(
+        (c) => c.status === "Active" || c.status === "Rising"
+      ).length;
+      const resolved = teamCards.filter((c) => c.status === "Fixed").length;
+      return {
+        totalStops,
+        durationFormatted: formatDuration(totalMins),
+        needFocus,
+        resolved,
+      };
+    };
+
+    return {
+      fieldCards: fCards,
+      rdCards: rCards,
+      customerCards: cCards,
+      fieldStats: getStats(fCards),
+      rdStats: getStats(rCards),
+      customerStats: getStats(cCards),
+    };
+  }, [filteredStops]);
 
   const renderBadge = (status: "Active" | "Rising" | "Fixed") => {
     switch (status) {
@@ -233,18 +295,23 @@ export default function FocusBoardView() {
     );
   };
 
+  const customerColumnTitle =
+    currentCustomerName && currentCustomerName !== "All Customers"
+      ? currentCustomerName
+      : "Customer Team";
+
   return (
     <div className="space-y-6">
-      {/* Top Header & Range Pill Toggle matching Pasted image (3).png */}
+      {/* Top Header & Range Pill Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Focus Board</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Short stop categories grouped by team responsibility - focus on what's Rising and Active
+            Short stop categories grouped by team responsibility - focus on what&apos;s Rising and Active
           </p>
         </div>
 
-        {/* Range Pill Selector: 7d 30d 90d 6mo 1yr All */}
+        {/* Range Pill Selector */}
         <div className="flex items-center space-x-1.5 bg-slate-100 p-1 rounded-full text-xs font-semibold text-slate-600 shrink-0 self-start sm:self-auto">
           <span className="text-[11px] text-slate-400 pl-2 pr-1 font-bold">Range:</span>
           {RANGE_OPTIONS.map((range) => {
@@ -266,7 +333,7 @@ export default function FocusBoardView() {
         </div>
       </div>
 
-      {/* 3 Columns: Field Team | R&D Team | ST */}
+      {/* 3 Columns: Field Team | R&D Team | Customer Team */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Column 1: Field Team */}
         <div className="space-y-4">
@@ -278,15 +345,25 @@ export default function FocusBoardView() {
                   Onsite short-term resolution — every logged short stop
                 </p>
               </div>
-              <span className="text-2xl font-black text-amber-500">196</span>
+              <span className="text-2xl font-black text-amber-500">{fieldStats.totalStops}</span>
             </div>
             <div className="text-[11px] text-slate-400 mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between font-medium">
-              <span>20 need focus · 22 resolved</span>
-              <span className="font-semibold text-slate-600">16h 27m</span>
+              <span>
+                {fieldStats.needFocus} need focus · {fieldStats.resolved} resolved
+              </span>
+              <span className="font-semibold text-slate-600">{fieldStats.durationFormatted}</span>
             </div>
           </div>
 
-          <div className="space-y-3">{fieldCards.map(renderCard)}</div>
+          <div className="space-y-3">
+            {fieldCards.length === 0 ? (
+              <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400 italic">
+                No Field Team focus issues in this range.
+              </div>
+            ) : (
+              fieldCards.map(renderCard)
+            )}
+          </div>
         </div>
 
         {/* Column 2: R&D Team */}
@@ -299,36 +376,56 @@ export default function FocusBoardView() {
                   Permanent fix — software, firmware, algorithm, map
                 </p>
               </div>
-              <span className="text-2xl font-black text-blue-600">10</span>
+              <span className="text-2xl font-black text-blue-600">{rdStats.totalStops}</span>
             </div>
             <div className="text-[11px] text-slate-400 mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between font-medium">
-              <span>1 need focus · 2 resolved</span>
-              <span className="font-semibold text-slate-600">50m</span>
+              <span>
+                {rdStats.needFocus} need focus · {rdStats.resolved} resolved
+              </span>
+              <span className="font-semibold text-slate-600">{rdStats.durationFormatted}</span>
             </div>
           </div>
 
-          <div className="space-y-3">{rdCards.map(renderCard)}</div>
+          <div className="space-y-3">
+            {rdCards.length === 0 ? (
+              <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400 italic">
+                No R&D Team focus issues in this range.
+              </div>
+            ) : (
+              rdCards.map(renderCard)
+            )}
+          </div>
         </div>
 
-        {/* Column 3: ST (Customer Team) */}
+        {/* Column 3: Customer Team */}
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm border-t-4 border-t-cyan-500">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-base font-bold text-slate-900">ST</h3>
+                <h3 className="text-base font-bold text-slate-900">{customerColumnTitle}</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Customer-side (ST) operation & equipment - visibility, not ownership
+                  Customer-side operation & equipment - visibility, not ownership
                 </p>
               </div>
-              <span className="text-2xl font-black text-cyan-600">57</span>
+              <span className="text-2xl font-black text-cyan-600">{customerStats.totalStops}</span>
             </div>
             <div className="text-[11px] text-slate-400 mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between font-medium">
-              <span>1 need focus · 3 resolved</span>
-              <span className="font-semibold text-slate-600">6h 5m</span>
+              <span>
+                {customerStats.needFocus} need focus · {customerStats.resolved} resolved
+              </span>
+              <span className="font-semibold text-slate-600">{customerStats.durationFormatted}</span>
             </div>
           </div>
 
-          <div className="space-y-3">{stCards.map(renderCard)}</div>
+          <div className="space-y-3">
+            {customerCards.length === 0 ? (
+              <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400 italic">
+                No customer operation focus issues in this range.
+              </div>
+            ) : (
+              customerCards.map(renderCard)
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -63,7 +63,7 @@ export default function LogShortStopForm() {
   const [description, setDescription] = useState<string>("");
   const [actionTakenChip, setActionTakenChip] = useState<string>("Resolved");
   const [actionTakenText, setActionTakenText] = useState<string>("Resolved");
-  const [reportedBy, setReportedBy] = useState<string>("toloke.df@gmail.com");
+  const [reportedBy, setReportedBy] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
@@ -478,6 +478,7 @@ export default function LogShortStopForm() {
             type="text"
             value={reportedBy}
             onChange={(e) => setReportedBy(e.target.value)}
+            placeholder="e.g. Operator Name or Email"
             className="w-full bg-slate-50/70 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-400 focus:outline-none transition"
           />
         </div>

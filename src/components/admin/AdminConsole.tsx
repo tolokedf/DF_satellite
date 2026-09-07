@@ -333,7 +333,7 @@ export default function AdminConsole() {
                 Add User / Customer / Intern
               </h2>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Example: ID: <code>perodua</code>, Password: <code>perodua123</code>
+                Example: ID: <code>customer1</code>, Password: <code>customer123</code>
               </p>
             </div>
 
@@ -347,7 +347,7 @@ export default function AdminConsole() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. perodua, intern, or engineer2"
+                  placeholder="e.g. customer1 or engineer1"
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:bg-white focus:outline-none"
                 />
               </div>
@@ -361,7 +361,7 @@ export default function AdminConsole() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="e.g. perodua123, intern123"
+                  placeholder="e.g. password123"
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:bg-white focus:outline-none"
                 />
               </div>
@@ -374,7 +374,7 @@ export default function AdminConsole() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Perodua Automation Lead"
+                  placeholder="e.g. Lead Engineer / Plant Manager"
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:bg-white focus:outline-none"
                 />
               </div>
@@ -402,7 +402,16 @@ export default function AdminConsole() {
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">Company</label>
                   <select
                     value={companyId}
-                    onChange={(e) => setCompanyId(e.target.value)}
+                    onChange={(e) => {
+                      const newCompId = e.target.value;
+                      setCompanyId(newCompId);
+                      setSelectedSiteIds((prev) => {
+                        const validIds = sites
+                          .filter((s) => s.companyId === newCompId || s.company?.id === newCompId)
+                          .map((s) => s.id);
+                        return prev.filter((id) => validIds.includes(id));
+                      });
+                    }}
                     disabled={role !== "CUSTOMER"}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                   >
@@ -440,33 +449,61 @@ export default function AdminConsole() {
                       : "bg-slate-50"
                   }`}
                 >
-                  {sites.map((s) => {
-                    const checked = role === "ENGINEER" || selectedSiteIds.includes(s.id);
-                    return (
+                  {role === "ENGINEER" ? (
+                    sites.map((s) => (
                       <label
                         key={s.id}
-                        className={`flex items-center space-x-2 text-xs text-slate-700 ${
-                          role === "ENGINEER" ? "cursor-not-allowed text-slate-400" : "cursor-pointer hover:text-slate-900"
-                        }`}
+                        className="flex items-center space-x-2 text-xs text-slate-400 cursor-not-allowed"
                       >
                         <input
                           type="checkbox"
-                          checked={checked}
-                          disabled={role === "ENGINEER"}
-                          onChange={() => handleToggleSite(s.id)}
+                          checked={true}
+                          disabled={true}
                           className="rounded text-purple-600 focus:ring-purple-500 disabled:text-slate-400"
                         />
                         <span className="truncate">
                           {s.company?.name} - {s.name}
                         </span>
                       </label>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    (() => {
+                      const companySites = sites.filter(
+                        (s) => s.companyId === companyId || s.company?.id === companyId
+                      );
+                      if (companySites.length === 0) {
+                        return (
+                          <div className="text-center py-3 text-xs text-slate-400 italic">
+                            No sites registered for this company. Please create a site in the &quot;Customer Sites&quot; tab first.
+                          </div>
+                        );
+                      }
+                      return companySites.map((s) => {
+                        const checked = selectedSiteIds.includes(s.id);
+                        return (
+                          <label
+                            key={s.id}
+                            className="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer hover:text-slate-900"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handleToggleSite(s.id)}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="truncate font-medium">
+                              {s.name} {s.code ? `(${s.code})` : ""}
+                            </span>
+                          </label>
+                        );
+                      });
+                    })()
+                  )}
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">
                   {role === "ENGINEER"
                     ? "Engineers have global access to all customer sites automatically."
-                    : "Customers can only see data from checked sites."}
+                    : "Only sites registered under the selected company are available for selection."}
                 </p>
               </div>
 

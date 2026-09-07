@@ -69,25 +69,23 @@ export default function PortfolioOverview() {
           });
           const compList = Object.values(compMap);
           setCompanies(compList);
-          if (compList.length > 0) setNewCompanyId(compList[0].id);
-          if (data.length > 0) setNewSiteId(data[0].id);
         }
       });
   }, []);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName || !newCode || !newCompanyId || !newSiteId) return;
+    if (!newName.trim() || !newCode.trim()) return;
 
     try {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: newName,
-          code: newCode,
-          companyId: newCompanyId,
-          siteId: newSiteId,
+          name: newName.trim(),
+          code: newCode.trim(),
+          companyId: newCompanyId || undefined,
+          siteId: newSiteId || undefined,
           leadEngineer: newLead,
           targetGoLive: newTargetGoLive || null,
           gdriveFolderUrl: newDriveFolder || null,
@@ -98,6 +96,8 @@ export default function PortfolioOverview() {
         setShowNewModal(false);
         setNewName("");
         setNewCode("");
+        setNewCompanyId("");
+        setNewSiteId("");
         fetchProjects();
       }
     } catch (err) {
@@ -152,7 +152,7 @@ export default function PortfolioOverview() {
             <FolderKanban className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-bold text-slate-900 mt-2">{projects.length}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Across Proton, Perodua, ST Muar</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Total registered customer projects</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -295,7 +295,7 @@ export default function PortfolioOverview() {
                   <span>
                     Go-Live:{" "}
                     <strong>
-                      {proj.targetGoLive ? format(new Date(proj.targetGoLive), "d/M/yyyy") : "TBD"}
+                      {proj.targetGoLive ? format(new Date(proj.targetGoLive), "dd/MM/yyyy") : "TBD"}
                     </strong>
                   </span>
                 </div>
@@ -329,7 +329,7 @@ export default function PortfolioOverview() {
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Proton Tanjung Malim AMR Delivery"
+                  placeholder="e.g. Factory AGV Deployment Phase 1"
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:bg-white focus:outline-none"
                 />
               </div>
@@ -359,12 +359,13 @@ export default function PortfolioOverview() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Customer *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Customer (optional)</label>
                   <select
                     value={newCompanyId}
                     onChange={(e) => setNewCompanyId(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:bg-white focus:outline-none"
                   >
+                    <option value="">None (Internal)</option>
                     {companies.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -373,12 +374,13 @@ export default function PortfolioOverview() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Site *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Site (optional)</label>
                   <select
                     value={newSiteId}
                     onChange={(e) => setNewSiteId(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:bg-white focus:outline-none"
                   >
+                    <option value="">No site (General)</option>
                     {sites.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
