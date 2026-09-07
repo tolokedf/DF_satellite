@@ -13,7 +13,8 @@
     "prisma:push": "prisma db push",
     "prisma:seed": "tsx scripts/seed.ts",
     "export:db": "bash scripts/export_database.sh",
-    "import:db": "bash scripts/import_database.sh"
+    "import:db": "bash scripts/import_database.sh",
+    "postinstall": "node -e \"const fs=require('fs'); if(!fs.existsSync('.env') && fs.existsSync('.env.example')) fs.copyFileSync('.env.example', '.env');\""
   },
   "dependencies": {
     "@prisma/client": "^5.21.1",
