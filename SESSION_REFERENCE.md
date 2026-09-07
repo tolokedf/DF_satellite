@@ -247,6 +247,7 @@ DF_satellite/
 ├── import.sh / import.bat    # Quick database import shortcuts
 ├── start.sh / start.bat      # Launches production server on port 3001
 ├── stop.sh / stop.bat        # Graceful shutdown scripts (Linux & Windows)
+├── next.config.mjs           # Next.js configuration (cross-platform production build settings)
 ├── SESSION_REFERENCE.md      # This file (Must be updated on every change!)
 └── README.md
 ```
