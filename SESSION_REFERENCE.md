@@ -312,3 +312,26 @@ npm run build
      - Double-click `import.bat` (or drag and drop the zip file directly onto `import.bat`).
      - It safely backs up any existing database, extracts `satellite.db` into `Database\data\`, cleans stale WAL files, and verifies integrity.
   4. **Run on Windows:** Double-click `start.bat` to launch the application on port `3001`.
+
+---
+
+## 🔧 11. Troubleshooting Windows Fresh Clone Setup
+
+If `npm run build` shows `Failed to type check` or `prisma schema validation error code: P1012`:
+1. **Pull Latest Code:**
+   ```cmd
+   git pull origin master
+   ```
+2. **Ensure `.env` Exists:**
+   ```cmd
+   if not exist .env copy .env.example .env
+   ```
+3. **Generate Prisma Client Types:**
+   ```cmd
+   npx prisma generate
+   ```
+4. **Compile / Rebuild:**
+   ```cmd
+   npm run build
+   ```
+   *(Or inspect specific lines by running `npx tsc --noEmit`)*
