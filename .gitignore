@@ -15,10 +15,14 @@ Database/data/*
 Database/backups/*
 !Database/backups/.gitkeep
 *.db
-*.db-journal
-*.db-wal
-*.db-shm
+*.db-*
+*.db.pre_*
+*.db.bak_*
+*.sqlite
+*.sqlite3
 *.zip
+*.tar.gz
+*.bak
 
 # Environment & Logs
 .env

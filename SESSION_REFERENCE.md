@@ -277,17 +277,37 @@ DF_satellite/
 
 ```bash
 # Start the server (binds to 0.0.0.0:3001)
-./start.sh
+# Start the server (binds to 0.0.0.0:3001)
+./start.sh          # Linux
+start.bat           # Windows
 
 # Stop the server
 ./stop.sh
 
-# Export / backup database (creates timestamped ZIP with SHA-256)
-./export.sh
+# Export database (creates timestamped ZIP & DF_Satellite_DB_latest.zip)
+./export.sh         # Linux development laptop
+export.bat          # Windows
 
-# Restore database from backup archive
-./import.sh Database/backups/DF_Satellite_DB_<TIMESTAMP>.zip
+# Import database (auto-detects latest backup, drag-and-drop, or specific file)
+./import.sh                                           # Linux (auto-detects latest)
+./import.sh Database/backups/DF_Satellite_DB_latest.zip # Linux (specific file)
+import.bat                                            # Windows (double-click or drag-and-drop zip/db)
 
 # Rebuild Next.js app
 npm run build
 ```
+
+---
+
+## 🗄️ 10. Database Isolation & Manual Migration Workflow
+
+- **Strictly Excluded from Git:** Database files (`Database/data/*`, `*.db`, `*.db-*`, `*.sqlite`, `*.zip`) are ignored by `.gitignore` and are never committed to GitHub.
+- **Manual Export Workflow (Development Laptop -> Deployment Desktop):**
+  1. **On Linux Dev Laptop:** Run `./export.sh`.
+     - Creates `DF_Satellite_DB_latest.zip` and a timestamped backup in `Database/backups/`.
+  2. **Transfer:** Copy `DF_Satellite_DB_latest.zip` to a USB flash drive or network share.
+  3. **On Windows Deployment Desktop:**
+     - Copy `DF_Satellite_DB_latest.zip` into the `DF_satellite` project folder.
+     - Double-click `import.bat` (or drag and drop the zip file directly onto `import.bat`).
+     - It safely backs up any existing database, extracts `satellite.db` into `Database\data\`, cleans stale WAL files, and verifies integrity.
+  4. **Run on Windows:** Double-click `start.bat` to launch the application on port `3001`.

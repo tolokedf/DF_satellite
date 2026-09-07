@@ -96,17 +96,24 @@ The web application binds to `0.0.0.0` on port `3001`, making it immediately acc
 
 ---
 
-## 📦 Database Backup & Server Migration
+## 📦 Database Manual Export & Deployment (Development Laptop -> Windows Desktop)
 
-To transfer this application to a USB drive or migrate to another deployment machine:
+The SQLite database is excluded from Git to prevent accidental overwrites or data leaks. To manually transfer your data:
 
-1. **Export Database**:
-   ```bash
-   ./export.sh
-   ```
-   *(Creates `DF_Satellite_DB_YYYYMMDD_HHMMSS.zip` with SHA-256 checksum).*
+### Step 1: Export on Development Laptop (Linux)
+```bash
+./export.sh
+```
+This checkpoints the database and creates:
+- `DF_Satellite_DB_latest.zip` (in project root)
+- `Database/backups/DF_Satellite_DB_YYYYMMDD_HHMMSS.zip`
 
-2. **Restore Database on New Machine**:
-   ```bash
-   ./import.sh Database/backups/DF_Satellite_DB_<TIMESTAMP>.zip
-   ```
+### Step 2: Transfer Archive
+Copy `DF_Satellite_DB_latest.zip` to a USB drive or network share.
+
+### Step 3: Import on Deployment Machine (Windows Desktop)
+1. Copy `DF_Satellite_DB_latest.zip` into the `DF_satellite` project folder on Windows.
+2. Double-click **`import.bat`** (or drag and drop the zip file onto `import.bat`).
+3. Launch the server by double-clicking **`start.bat`** (runs on port `3001`).
+
+*(To export on Windows, run `export.bat`; to restore on Linux, run `./import.sh`).*

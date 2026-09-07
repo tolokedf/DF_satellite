@@ -22,10 +22,17 @@ if [ ! -d "$DB_DIR" ] || [ -z "$(ls -A "$DB_DIR" 2>/dev/null)" ]; then
   exit 1
 fi
 
-# Package Database/data into zip
-(cd "$BASE_DIR/Database" && zip -r "$DEST_FILE" data -x "*.gitkeep")
+# Ensure SQLite WAL is checkpointed to avoid missing pending journal writes
+if command -v sqlite3 >/dev/null 2>&1 && [ -f "$DB_DIR/satellite.db" ]; then
+  echo " 🔄 Checkpointing SQLite WAL journal..."
+  sqlite3 "$DB_DIR/satellite.db" "PRAGMA wal_checkpoint(TRUNCATE);" 2>/dev/null || true
+fi
 
-# Also copy to root for quick access / USB copy
+# Package Database/data into zip
+(cd "$BASE_DIR/Database" && zip -r "$DEST_FILE" data -x "*.gitkeep" -x "*.wal" -x "*.shm" -x "*.bak*")
+
+# Also create DF_Satellite_DB_latest.zip in root for quick USB copy
+cp "$DEST_FILE" "$BASE_DIR/DF_Satellite_DB_latest.zip"
 cp "$DEST_FILE" "$BASE_DIR/$ZIP_NAME"
 
 CHECKSUM=$(sha256sum "$DEST_FILE" | awk '{print $1}')
@@ -36,7 +43,11 @@ echo " ✅ Export Complete!"
 echo " 🗜️  Archive Size:     $FILE_SIZE"
 echo " 🔒 SHA-256 Checksum: $CHECKSUM"
 echo " 💾 Backup Archive:   $DEST_FILE"
-echo " 📍 Quick Copy:       $BASE_DIR/$ZIP_NAME"
+echo " 📍 Quick USB Copy:   $BASE_DIR/DF_Satellite_DB_latest.zip"
+echo "                      $BASE_DIR/$ZIP_NAME"
 echo "======================================================================"
-echo " 💡 Ready to copy to USB or transfer to another deployment server."
+echo " 📋 Next Steps to Transfer to Windows Desktop:"
+echo " 1. Copy 'DF_Satellite_DB_latest.zip' to your USB drive or network share."
+echo " 2. On your Windows desktop, place the zip file in the DF_satellite root folder."
+echo " 3. Double-click 'import.bat' (or drag and drop the zip onto 'import.bat')."
 echo "======================================================================"
