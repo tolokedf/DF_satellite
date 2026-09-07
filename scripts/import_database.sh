@@ -7,7 +7,9 @@ BACKUP_FILE="$1"
 
 # If no file specified, search for latest backup
 if [ -z "$BACKUP_FILE" ]; then
-  if [ -f "$BASE_DIR/DF_Satellite_DB_latest.zip" ]; then
+  if [ -f "$BASE_DIR/Database/backups/DF_Satellite_DB_latest.zip" ]; then
+    BACKUP_FILE="$BASE_DIR/Database/backups/DF_Satellite_DB_latest.zip"
+  elif [ -f "$BASE_DIR/DF_Satellite_DB_latest.zip" ]; then
     BACKUP_FILE="$BASE_DIR/DF_Satellite_DB_latest.zip"
   else
     LATEST_ZIP=$(ls -t "$BASE_DIR/Database/backups/"*.zip 2>/dev/null | head -n 1 || true)

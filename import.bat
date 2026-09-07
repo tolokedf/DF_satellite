@@ -7,9 +7,12 @@ echo ======================================================================
 
 set "INPUT_FILE=%~1"
 
-:: If no file was passed as argument or drag-and-drop, look for default zip in root or backups
+:: If no file was passed as argument or drag-and-drop, look for default zip in backups or root
 if "%INPUT_FILE%"=="" (
-    if exist "DF_Satellite_DB_latest.zip" (
+    if exist "Database\backups\DF_Satellite_DB_latest.zip" (
+        set "INPUT_FILE=Database\backups\DF_Satellite_DB_latest.zip"
+        echo  Found latest backup: Database\backups\DF_Satellite_DB_latest.zip
+    ) else if exist "DF_Satellite_DB_latest.zip" (
         set "INPUT_FILE=DF_Satellite_DB_latest.zip"
         echo  Found latest backup: DF_Satellite_DB_latest.zip
     ) else if exist "Database\backups\*.zip" (

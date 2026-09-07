@@ -31,9 +31,8 @@ fi
 # Package Database/data into zip
 (cd "$BASE_DIR/Database" && zip -r "$DEST_FILE" data -x "*.gitkeep" -x "*.wal" -x "*.shm" -x "*.bak*")
 
-# Also create DF_Satellite_DB_latest.zip in root for quick USB copy
-cp "$DEST_FILE" "$BASE_DIR/DF_Satellite_DB_latest.zip"
-cp "$DEST_FILE" "$BASE_DIR/$ZIP_NAME"
+# Keep DF_Satellite_DB_latest.zip in backups folder
+cp -f "$DEST_FILE" "$BACKUP_DIR/DF_Satellite_DB_latest.zip"
 
 CHECKSUM=$(sha256sum "$DEST_FILE" | awk '{print $1}')
 FILE_SIZE=$(du -h "$DEST_FILE" | awk '{print $1}')
@@ -43,11 +42,10 @@ echo " ✅ Export Complete!"
 echo " 🗜️  Archive Size:     $FILE_SIZE"
 echo " 🔒 SHA-256 Checksum: $CHECKSUM"
 echo " 💾 Backup Archive:   $DEST_FILE"
-echo " 📍 Quick USB Copy:   $BASE_DIR/DF_Satellite_DB_latest.zip"
-echo "                      $BASE_DIR/$ZIP_NAME"
+echo " 📍 Quick USB Copy:   $BACKUP_DIR/DF_Satellite_DB_latest.zip"
 echo "======================================================================"
 echo " 📋 Next Steps to Transfer to Windows Desktop:"
-echo " 1. Copy 'DF_Satellite_DB_latest.zip' to your USB drive or network share."
-echo " 2. On your Windows desktop, place the zip file in the DF_satellite root folder."
-echo " 3. Double-click 'import.bat' (or drag and drop the zip onto 'import.bat')."
+echo " 1. Copy 'DF_Satellite_DB_latest.zip' from Database/backups/ to your USB drive."
+echo " 2. On your Windows desktop, plug in the USB drive."
+echo " 3. Drag and drop the zip file onto 'import.bat' (or place it in the folder and double-click 'import.bat')."
 echo "======================================================================"

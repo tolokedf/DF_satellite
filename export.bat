@@ -22,14 +22,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "$zipName = 'DF_Satellite_DB_' + $ts + '.zip';" ^
     "$dest = Join-Path 'Database\backups' $zipName;" ^
     "Compress-Archive -Path 'Database\data' -DestinationPath $dest -Force;" ^
-    "Copy-Item $dest -Destination 'DF_Satellite_DB_latest.zip' -Force;" ^
+    "Copy-Item $dest -Destination 'Database\backups\DF_Satellite_DB_latest.zip' -Force;" ^
     "$size = (Get-Item $dest).Length / 1KB;" ^
     "$hash = (Get-FileHash $dest -Algorithm SHA256).Hash;" ^
     "Write-Host (' ✅ Export Complete! ' + [math]::Round($size, 1) + ' KB');" ^
     "Write-Host (' 🔒 SHA-256 Checksum: ' + $hash);" ^
     "Write-Host (' 💾 Backup Archive:   ' + $dest);" ^
-    "Write-Host (' 📍 Quick USB Copy:   DF_Satellite_DB_latest.zip');" ^
-    "Write-Host ('                      ' + $zipName);"
+    "Write-Host (' 📍 Quick USB Copy:   Database\backups\DF_Satellite_DB_latest.zip');"
 
 if %errorlevel% neq 0 (
     echo.
@@ -41,9 +40,9 @@ if %errorlevel% neq 0 (
 echo ----------------------------------------------------------------------
 echo ======================================================================
 echo  📋 How to Transfer to Windows Desktop:
-echo  1. Copy 'DF_Satellite_DB_latest.zip' to your USB drive.
-echo  2. On the deployment desktop, place it in the DF_satellite root folder.
-echo  3. Double-click 'import.bat' (or drag and drop the zip onto import.bat).
+echo  1. Copy 'DF_Satellite_DB_latest.zip' from Database\backups\ to your USB drive.
+echo  2. On the deployment desktop, plug in the USB drive.
+echo  3. Drag and drop the zip file onto 'import.bat' (or place it in the folder and double-click 'import.bat').
 echo ======================================================================
 echo.
 pause

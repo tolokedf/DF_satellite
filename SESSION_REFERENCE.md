@@ -241,11 +241,12 @@ DF_satellite/
 │       ├── prisma.ts         # PrismaClient singleton
 │       └── types.ts          # Core TypeScript types (UserRole, SessionUser, etc.)
 │
+├── docs/
+│   └── customer_site_reference/ # UI reference screenshots
 ├── export.sh / export.bat    # Quick database export shortcuts
 ├── import.sh / import.bat    # Quick database import shortcuts
 ├── start.sh / start.bat      # Launches production server on port 3001
-├── stop.sh                   # Graceful shutdown script
-├── PROJECT_CONTEXT.md        # Technical reference
+├── stop.sh / stop.bat        # Graceful shutdown scripts (Linux & Windows)
 ├── SESSION_REFERENCE.md      # This file (Must be updated on every change!)
 └── README.md
 ```
