@@ -91,11 +91,8 @@ export default function TaskOverviewView() {
     isDone?: boolean,
     customNote?: string | null
   ) => {
-    if (customNote && customNote.trim().toLowerCase() === "no delay") {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
-    }
     if (!dueDateStr) {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
 
     const dueDate = new Date(dueDateStr);
@@ -106,7 +103,7 @@ export default function TaskOverviewView() {
       : new Date();
 
     if (!finishDate) {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
 
     const dDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
@@ -117,7 +114,7 @@ export default function TaskOverviewView() {
     if (diffDays > 0) {
       return { text: `+${diffDays} days delay`, isDelayed: true, diffDays };
     } else {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
   };
 
@@ -530,8 +527,8 @@ export default function TaskOverviewView() {
                     </div>
 
                     {/* Delay Badge */}
-                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-rose-600" />
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-red-600" />
                       <span>{task.delayText}</span>
                     </span>
                   </div>
@@ -543,7 +540,7 @@ export default function TaskOverviewView() {
                     </div>
                     <div>
                       <span>Due: </span>
-                      <span className="font-semibold text-rose-700">
+                      <span className="font-semibold text-red-600">
                         {task.dueDate ? format(new Date(task.dueDate), "dd/MM/yyyy") : "-"}
                       </span>
                     </div>

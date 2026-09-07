@@ -8,8 +8,30 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const count = await prisma.actionItem.count({ where: { projectId: body.projectId } });
-    const itemNo = `OAL-${(count + 1).toString().padStart(3, "0")}`;
+    if (!body.projectId || !body.title) {
+      return NextResponse.json({ error: "projectId and title are required" }, { status: 400 });
+    }
+
+    const project = await prisma.project.findUnique({ where: { id: body.projectId } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (user.role === "CUSTOMER" && (!project.siteId || !user.assignedSiteIds.includes(project.siteId))) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    const latestItem = await prisma.actionItem.findFirst({
+      where: { projectId: body.projectId },
+      orderBy: { createdAt: "desc" },
+      select: { itemNo: true },
+    });
+    let nextNum = 1;
+    if (latestItem?.itemNo?.startsWith("OAL-")) {
+      const parsed = parseInt(latestItem.itemNo.replace("OAL-", ""), 10);
+      if (!isNaN(parsed)) nextNum = parsed + 1;
+    } else {
+      const count = await prisma.actionItem.count({ where: { projectId: body.projectId } });
+      nextNum = count + 1;
+    }
+    const itemNo = `OAL-${nextNum.toString().padStart(3, "0")}`;
 
     const item = await prisma.actionItem.create({
       data: {
@@ -39,6 +61,16 @@ export async function PATCH(req: Request) {
 
     const body = await req.json();
     const { id, ...data } = body;
+    if (!id) return NextResponse.json({ error: "Action item ID is required" }, { status: 400 });
+
+    const existingItem = await prisma.actionItem.findUnique({
+      where: { id },
+      include: { project: true },
+    });
+    if (!existingItem) return NextResponse.json({ error: "Action item not found" }, { status: 404 });
+    if (user.role === "CUSTOMER" && (!existingItem.project.siteId || !user.assignedSiteIds.includes(existingItem.project.siteId))) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
 
     if (data.targetDate) data.targetDate = new Date(data.targetDate);
     if (data.completedDate) data.completedDate = new Date(data.completedDate);

@@ -5,6 +5,10 @@ import { getSessionUser, getSiteFilterForUser } from "@/lib/auth";
 export async function GET(req: Request) {
   try {
     const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const siteFilter = getSiteFilterForUser(user);
 
     const { searchParams } = new URL(req.url);
@@ -20,11 +24,24 @@ export async function GET(req: Request) {
 
     const where: any = {};
     if (siteFilter) {
-      where.siteId = siteFilter;
-    } else if (siteId && siteId !== "ALL") {
-      where.siteId = siteId;
-    } else if (companyId && companyId !== "ALL") {
-      where.site = { companyId };
+      if (siteId && siteId !== "ALL") {
+        if (user?.assignedSiteIds?.includes(siteId)) {
+          where.siteId = siteId;
+        } else {
+          where.siteId = "__UNAUTHORIZED__";
+        }
+      } else if (companyId && companyId !== "ALL") {
+        where.site = { companyId };
+        where.siteId = siteFilter;
+      } else {
+        where.siteId = siteFilter;
+      }
+    } else {
+      if (siteId && siteId !== "ALL") {
+        where.siteId = siteId;
+      } else if (companyId && companyId !== "ALL") {
+        where.site = { companyId };
+      }
     }
     if (robotId && robotId !== "ALL") where.robotId = robotId;
     if (category && category !== "ALL" && category !== "All") where.category = category;

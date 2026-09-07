@@ -389,7 +389,16 @@ export default function GanttChart({ projects }: GanttChartProps) {
                             <div>Assignee: <span className="text-white font-medium">{m.assignee}</span></div>
                             <div>Due: <span className="text-white font-medium">{m.dueDate ? format(new Date(m.dueDate), "dd/MM/yyyy") : "—"}</span></div>
                             {m.actualFinishedDate && (
-                              <div>Finished: <span className="text-emerald-300 font-medium">{format(new Date(m.actualFinishedDate), "dd/MM/yyyy")}</span></div>
+                              <div>
+                                Finished:{" "}
+                                <span className={`font-medium ${
+                                  m.dueDate && new Date(m.actualFinishedDate) > new Date(m.dueDate)
+                                    ? "text-red-400 font-bold"
+                                    : "text-emerald-300"
+                                }`}>
+                                  {format(new Date(m.actualFinishedDate), "dd/MM/yyyy")}
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -450,7 +459,7 @@ export default function GanttChart({ projects }: GanttChartProps) {
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                     Status
                   </span>
-                  <div className="mt-0.5">
+                  <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                     {selectedMilestone.task.isDone ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Achieved (Done)
@@ -460,6 +469,28 @@ export default function GanttChart({ projects }: GanttChartProps) {
                         In Progress / Pending
                       </span>
                     )}
+                    {(() => {
+                      const t = selectedMilestone.task;
+                      const isDelayed = Boolean(
+                        (t.dueDate && t.actualFinishedDate && new Date(t.actualFinishedDate) > new Date(t.dueDate)) ||
+                        (!t.isDone && t.dueDate && new Date() > new Date(t.dueDate))
+                      );
+                      if (isDelayed) {
+                        return (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-600 border border-red-200">
+                            delayed
+                          </span>
+                        );
+                      }
+                      if (t.isDone && t.dueDate && t.actualFinishedDate && new Date(t.actualFinishedDate) <= new Date(t.dueDate)) {
+                        return (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            no delay
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
               </div>
@@ -478,7 +509,15 @@ export default function GanttChart({ projects }: GanttChartProps) {
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                     Actual Finished
                   </span>
-                  <div className="font-semibold text-slate-800 mt-0.5 font-mono">
+                  <div className={`mt-0.5 font-mono ${
+                    selectedMilestone.task.actualFinishedDate &&
+                    selectedMilestone.task.dueDate &&
+                    new Date(selectedMilestone.task.actualFinishedDate) > new Date(selectedMilestone.task.dueDate)
+                      ? "text-red-600 font-bold"
+                      : selectedMilestone.task.actualFinishedDate
+                      ? "text-emerald-700 font-semibold"
+                      : "font-semibold text-slate-800"
+                  }`}>
                     {selectedMilestone.task.actualFinishedDate ? format(new Date(selectedMilestone.task.actualFinishedDate), "dd/MM/yyyy") : "Pending"}
                   </div>
                 </div>

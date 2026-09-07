@@ -569,7 +569,7 @@ export default function AdminConsole() {
                           )}
                         </td>
                         <td className="py-2.5 px-3 text-center">
-                          {u.username !== "admin" && (
+                          {u.username !== "admin" && u.role !== "ADMIN" && (
                             <button
                               onClick={() => handleDeleteUser(u.id, u.username)}
                               className="text-slate-400 hover:text-rose-600 transition"

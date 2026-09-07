@@ -28,7 +28,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     // Single active device session enforcement:
     // If user has an active sessionToken, verify that this device's token matches.
     // If user logged in on another device, user.sessionToken will have changed, invalidating this session.
-    if (user.sessionToken && data.sessionToken && user.sessionToken !== data.sessionToken) {
+    if (user.sessionToken && (!data.sessionToken || user.sessionToken !== data.sessionToken)) {
       return null;
     }
 

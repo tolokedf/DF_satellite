@@ -384,7 +384,7 @@ export default function AnalyticsView() {
         </div>
 
         <p className="text-[11px] text-slate-500 font-medium">
-          Showing: {format(new Date(startDate), "d/M/yyyy")} &rarr; {format(new Date(endDate), "d/M/yyyy")} • {filteredStops.length} events analyzed
+          Showing: {format(new Date(startDate), "dd/MM/yyyy")} &rarr; {format(new Date(endDate), "dd/MM/yyyy")} • {filteredStops.length} events analyzed
         </p>
       </div>
 
@@ -576,8 +576,8 @@ export default function AnalyticsView() {
                   </div>
                 </div>
                 <div className="text-right text-xs text-slate-500">
-                  <div><strong>Period:</strong> {format(new Date(startDate), "d/M/yyyy")} &rarr; {format(new Date(endDate), "d/M/yyyy")}</div>
-                  <div><strong>Generated:</strong> {format(new Date(), "d/M/yyyy HH:mm")}</div>
+                  <div><strong>Period:</strong> {format(new Date(startDate), "dd/MM/yyyy")} &rarr; {format(new Date(endDate), "dd/MM/yyyy")}</div>
+                  <div><strong>Generated:</strong> {format(new Date(), "dd/MM/yyyy HH:mm")}</div>
                 </div>
               </div>
 

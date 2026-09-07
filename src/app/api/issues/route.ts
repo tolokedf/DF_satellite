@@ -5,6 +5,10 @@ import { getSessionUser, getSiteFilterForUser } from "@/lib/auth";
 export async function GET(req: Request) {
   try {
     const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const siteFilter = getSiteFilterForUser(user);
 
     const { searchParams } = new URL(req.url);
@@ -14,11 +18,24 @@ export async function GET(req: Request) {
 
     const where: any = {};
     if (siteFilter) {
-      where.siteId = siteFilter;
-    } else if (siteId && siteId !== "ALL") {
-      where.siteId = siteId;
-    } else if (companyId && companyId !== "ALL") {
-      where.site = { companyId };
+      if (siteId && siteId !== "ALL") {
+        if (user?.assignedSiteIds?.includes(siteId)) {
+          where.siteId = siteId;
+        } else {
+          where.siteId = "__UNAUTHORIZED__";
+        }
+      } else if (companyId && companyId !== "ALL") {
+        where.site = { companyId };
+        where.siteId = siteFilter;
+      } else {
+        where.siteId = siteFilter;
+      }
+    } else {
+      if (siteId && siteId !== "ALL") {
+        where.siteId = siteId;
+      } else if (companyId && companyId !== "ALL") {
+        where.site = { companyId };
+      }
     }
     if (projectId) where.projectId = projectId;
 
@@ -50,8 +67,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Not permitted for this site" }, { status: 403 });
     }
 
-    const count = await prisma.issue.count();
-    const issueNo = `ISS-${(count + 1).toString().padStart(3, "0")}`;
+    const latestIssue = await prisma.issue.findFirst({
+      orderBy: { createdAt: "desc" },
+      select: { issueNo: true },
+    });
+    let nextNum = 1;
+    if (latestIssue?.issueNo?.startsWith("ISS-")) {
+      const parsed = parseInt(latestIssue.issueNo.replace("ISS-", ""), 10);
+      if (!isNaN(parsed)) nextNum = parsed + 1;
+    } else {
+      const total = await prisma.issue.count();
+      nextNum = total + 1;
+    }
+    const issueNo = `ISS-${nextNum.toString().padStart(3, "0")}`;
 
     const issue = await prisma.issue.create({
       data: {

@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { format } from "date-fns";
+import { getSessionUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
 
@@ -27,6 +33,12 @@ export async function GET(req: Request) {
 
     if (!project) {
       return new NextResponse("Project not found", { status: 404 });
+    }
+
+    if (user.role === "CUSTOMER") {
+      if (!project.siteId || !user.assignedSiteIds.includes(project.siteId)) {
+        return new NextResponse("Forbidden: Access denied to this project", { status: 403 });
+      }
     }
 
     const shortStops = project.siteId
@@ -230,7 +242,7 @@ export async function GET(req: Request) {
       ${shortStops.map(stop => `
         <tr>
           <td>${format(new Date(stop.startTime), "dd/MM/yyyy HH:mm")}</td>
-          <td><strong>${stop.robot.code}</strong></td>
+          <td><strong>${stop.robot?.code || "Site"}</strong></td>
           <td><strong>${stop.category}</strong></td>
           <td>${stop.specificLocation || stop.zone || "-"}</td>
           <td>${stop.durationMinutes} min</td>

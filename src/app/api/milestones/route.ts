@@ -87,7 +87,15 @@ export async function GET(req: Request) {
       });
     }
 
+    const where: any = {};
+    if (user.role === "CUSTOMER") {
+      where.project = {
+        siteId: { in: user.assignedSiteIds },
+      };
+    }
+
     const milestones = await prisma.milestone.findMany({
+      where,
       include: {
         project: {
           select: {

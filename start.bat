@@ -14,8 +14,25 @@ if not exist ".env" (
         echo HOST="0.0.0.0" >> .env
     )
 )
+:: Auto-generate Prisma client if missing
+if not exist "node_modules\@prisma\client" (
+    echo  Generating Prisma Client...
+    call npx prisma generate
+)
+
+:: Auto-build if production build is missing
+if not exist ".next" (
+    echo  No production build found. Building application...
+    call npm run build
+    if %errorlevel% neq 0 (
+        echo [ERROR] Build failed. Please run 'npm run build' manually to inspect errors.
+        pause
+        exit /b %errorlevel%
+    )
+)
+
 echo  Port: 3001
 echo  Database: Database\data\satellite.db
 echo ======================================================================
-npm run start
+call npm run start
 pause

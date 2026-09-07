@@ -17,18 +17,26 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const sanitized = users.map((u) => ({
-      id: u.id,
-      username: u.username,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      companyId: u.companyId,
-      companyName: u.company?.name,
-      assignedSiteIds: JSON.parse(u.assignedSiteIds || "[]"),
-      googleLinked: u.googleLinked,
-      createdAt: u.createdAt,
-    }));
+    const sanitized = users.map((u) => {
+      let assignedSiteIds: string[] = [];
+      try {
+        assignedSiteIds = JSON.parse(u.assignedSiteIds || "[]");
+      } catch {
+        assignedSiteIds = [];
+      }
+      return {
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        companyId: u.companyId,
+        companyName: u.company?.name,
+        assignedSiteIds,
+        googleLinked: u.googleLinked,
+        createdAt: u.createdAt,
+      };
+    });
 
     return NextResponse.json(sanitized);
   } catch (error: any) {
@@ -103,10 +111,39 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { id, password, assignedSiteIds, role, companyId, name, email, googleLinked } = body;
 
+    // Safety checks:
+    // 1. Prevent promoting any user to ADMIN
+    if (role === "ADMIN") {
+      return NextResponse.json(
+        { error: "Only one admin account is permitted in the system." },
+        { status: 400 }
+      );
+    }
+
+    // 2. Prevent changing master admin's role
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (targetUser.username === "admin" || targetUser.role === "ADMIN") {
+      if (role && role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "The master admin account role cannot be changed." },
+          { status: 400 }
+        );
+      }
+    }
+
     const data: any = {};
     if (password) data.passwordHash = bcrypt.hashSync(password, 10);
     if (assignedSiteIds !== undefined) data.assignedSiteIds = JSON.stringify(assignedSiteIds);
-    if (role) data.role = role;
+    if (role) {
+      data.role = role;
+      if (role === "ENGINEER") {
+        data.companyId = null;
+        data.assignedSiteIds = JSON.stringify([]);
+      }
+    }
     if (companyId !== undefined) data.companyId = companyId || null;
     if (name) data.name = name;
     if (email !== undefined) data.email = email;

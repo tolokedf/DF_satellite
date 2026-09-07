@@ -65,6 +65,7 @@ export default function ProjectWorkspace() {
   const [engineers, setEngineers] = useState<{ id: string; name: string; username: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const isEngineerOrAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "ENGINEER";
 
   // New task inline/modal state
   const [addingSection, setAddingSection] = useState<"OPEN_ACTION" | "MILESTONE" | "ISSUE" | null>(null);
@@ -182,11 +183,8 @@ export default function ProjectWorkspace() {
     isDone?: boolean,
     customNote?: string | null
   ) => {
-    if (customNote && customNote.trim().toLowerCase() === "no delay") {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
-    }
     if (!dueDateStr) {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
 
     const dueDate = new Date(dueDateStr);
@@ -197,7 +195,7 @@ export default function ProjectWorkspace() {
       : new Date();
 
     if (!finishDate) {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
 
     const dDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
@@ -208,7 +206,7 @@ export default function ProjectWorkspace() {
     if (diffDays > 0) {
       return { text: `delayed (+${diffDays}d)`, isDelayed: true, diffDays };
     } else {
-      return { text: "no delay", isDelayed: false, diffDays: 0 };
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
   };
 
@@ -243,6 +241,7 @@ export default function ProjectWorkspace() {
 
       setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
       setMyTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+      window.dispatchEvent(new Event("projects-updated"));
     } catch (err) {
       console.error(err);
       // Revert on error
@@ -260,6 +259,7 @@ export default function ProjectWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ assignee }),
       });
+      window.dispatchEvent(new Event("projects-updated"));
     } catch (err) {
       console.error(err);
     }
@@ -274,6 +274,7 @@ export default function ProjectWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dueDate }),
       });
+      window.dispatchEvent(new Event("projects-updated"));
     } catch (err) {
       console.error(err);
     }
@@ -288,6 +289,7 @@ export default function ProjectWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ actualFinishedDate }),
       });
+      window.dispatchEvent(new Event("projects-updated"));
     } catch (err) {
       console.error(err);
     }
@@ -300,6 +302,7 @@ export default function ProjectWorkspace() {
     setMyTasks((prev) => prev.filter((t) => t.id !== taskId));
     try {
       await fetch(`/api/project-tasks/${taskId}`, { method: "DELETE" });
+      window.dispatchEvent(new Event("projects-updated"));
     } catch (err) {
       console.error(err);
     }
@@ -320,13 +323,14 @@ export default function ProjectWorkspace() {
           assignee: newAssignee || currentUser?.name || "Engineer",
           dueDate: newDueDate || null,
           isDone: false,
-          delayNote: "no delay",
+          delayNote: null,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to add task");
       const created = await res.json();
       setTasks((prev) => [...prev, created]);
+      window.dispatchEvent(new Event("projects-updated"));
 
       // Reset form
       setNewEvent("");
@@ -414,17 +418,19 @@ export default function ProjectWorkspace() {
             </span>
           </div>
 
-          <button
-            onClick={() => {
-              setAddingSection(addingSection === section ? null : section);
-              setNewEvent("");
-              setNewDueDate("");
-            }}
-            className="flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold px-2.5 py-1.5 rounded-lg text-xs shadow-xs transition"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>+ Add {section === "OPEN_ACTION" ? "Action" : section === "MILESTONE" ? "Milestone" : "Issue"}</span>
-          </button>
+          {isEngineerOrAdmin && (
+            <button
+              onClick={() => {
+                setAddingSection(addingSection === section ? null : section);
+                setNewEvent("");
+                setNewDueDate("");
+              }}
+              className="flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold px-2.5 py-1.5 rounded-lg text-xs shadow-xs transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Add {section === "OPEN_ACTION" ? "Action" : section === "MILESTONE" ? "Milestone" : "Issue"}</span>
+            </button>
+          )}
         </div>
 
         {/* Inline Add Task Form */}
@@ -533,8 +539,11 @@ export default function ProjectWorkspace() {
                         <input
                           type="checkbox"
                           checked={task.isDone}
+                          disabled={!isEngineerOrAdmin}
                           onChange={() => handleToggleDone(task)}
-                          className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-0 cursor-pointer transition"
+                          className={`w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-0 transition ${
+                            isEngineerOrAdmin ? "cursor-pointer" : "cursor-default opacity-70"
+                          }`}
                         />
                       </td>
 
@@ -547,23 +556,27 @@ export default function ProjectWorkspace() {
 
                       {/* Column 2: Assign (choose which engineer by name) */}
                       <td className="py-2.5 px-3 align-middle">
-                        <div className="relative inline-block w-full">
-                          <select
-                            value={task.assignee}
-                            onChange={(e) => handleAssigneeChange(task, e.target.value)}
-                            className="w-full appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 py-1 pl-2 pr-6 rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer truncate"
-                          >
-                            {engineers.map((eng) => (
-                              <option key={eng.id} value={eng.name || eng.username}>
-                                {eng.name || eng.username}
-                              </option>
-                            ))}
-                            {!engineers.some((e) => (e.name || e.username) === task.assignee) && (
-                              <option value={task.assignee}>{task.assignee}</option>
-                            )}
-                          </select>
-                          <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-2 pointer-events-none" />
-                        </div>
+                        {isEngineerOrAdmin ? (
+                          <div className="relative inline-block w-full">
+                            <select
+                              value={task.assignee}
+                              onChange={(e) => handleAssigneeChange(task, e.target.value)}
+                              className="w-full appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 py-1 pl-2 pr-6 rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer truncate"
+                            >
+                              {engineers.map((eng) => (
+                                <option key={eng.id} value={eng.name || eng.username}>
+                                  {eng.name || eng.username}
+                                </option>
+                              ))}
+                              {!engineers.some((e) => (e.name || e.username) === task.assignee) && (
+                                <option value={task.assignee}>{task.assignee}</option>
+                              )}
+                            </select>
+                            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-2 pointer-events-none" />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-700 font-medium px-1">{task.assignee}</span>
+                        )}
                       </td>
 
                       {/* Column 3: Due Date */}
@@ -575,12 +588,14 @@ export default function ProjectWorkspace() {
                               {task.dueDate ? format(new Date(task.dueDate), "dd/MM/yyyy") : <span className="text-slate-400 font-sans">Select date</span>}
                             </span>
                           </div>
-                          <input
-                            type="date"
-                            value={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
-                            onChange={(e) => handleDueDateChange(task, e.target.value)}
-                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                          />
+                          {isEngineerOrAdmin && (
+                            <input
+                              type="date"
+                              value={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
+                              onChange={(e) => handleDueDateChange(task, e.target.value)}
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                            />
+                          )}
                         </div>
                       </td>
 
@@ -605,12 +620,14 @@ export default function ProjectWorkspace() {
                               {task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "dd/MM/yyyy") : <span className="font-sans italic text-slate-400">Set date</span>}
                             </span>
                           </div>
-                          <input
-                            type="date"
-                            value={task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "yyyy-MM-dd") : ""}
-                            onChange={(e) => handleFinishedDateChange(task, e.target.value)}
-                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                          />
+                          {isEngineerOrAdmin && (
+                            <input
+                              type="date"
+                              value={task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "yyyy-MM-dd") : ""}
+                              onChange={(e) => handleFinishedDateChange(task, e.target.value)}
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                            />
+                          )}
                         </div>
                       </td>
 
@@ -629,13 +646,15 @@ export default function ProjectWorkspace() {
 
                       {/* Delete Action */}
                       <td className="py-2.5 px-2 text-center align-middle">
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 rounded transition"
-                          title="Delete task"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {isEngineerOrAdmin && (
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 rounded transition"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -756,8 +775,11 @@ export default function ProjectWorkspace() {
                           <input
                             type="checkbox"
                             checked={task.isDone}
+                            disabled={!isEngineerOrAdmin}
                             onChange={() => handleToggleDone(task)}
-                            className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-0 cursor-pointer"
+                            className={`w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-0 ${
+                              isEngineerOrAdmin ? "cursor-pointer" : "cursor-default opacity-70"
+                            }`}
                           />
                         </td>
 
@@ -805,11 +827,11 @@ export default function ProjectWorkspace() {
                         <td className="py-3 px-3 align-middle">
                           {delay.isDelayed ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-600 border border-red-200">
-                              delayed {delay.diffDays > 0 ? `(+${delay.diffDays}d)` : ""}
+                              {delay.text}
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              no delay
+                              {delay.text}
                             </span>
                           )}
                         </td>
@@ -880,13 +902,15 @@ export default function ProjectWorkspace() {
             </div>
           </div>
 
-          <button
-            onClick={handleDeleteProject}
-            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-            title="Delete Project"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {isEngineerOrAdmin && (
+            <button
+              onClick={handleDeleteProject}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+              title="Delete Project"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 

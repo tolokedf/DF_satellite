@@ -5,11 +5,36 @@ import { getSessionUser, getSiteFilterForUser } from "@/lib/auth";
 export async function GET(req: Request) {
   try {
     const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const siteId = searchParams.get("siteId");
+    const companyId = searchParams.get("companyId");
+
     const siteFilter = getSiteFilterForUser(user);
 
     const whereClause: any = {};
     if (siteFilter) {
-      whereClause.siteId = siteFilter;
+      if (siteId && siteId !== "ALL") {
+        if (user.assignedSiteIds?.includes(siteId)) {
+          whereClause.siteId = siteId;
+        } else {
+          whereClause.siteId = "__UNAUTHORIZED__";
+        }
+      } else if (companyId && companyId !== "ALL") {
+        whereClause.companyId = companyId;
+        whereClause.siteId = siteFilter;
+      } else {
+        whereClause.siteId = siteFilter;
+      }
+    } else {
+      if (siteId && siteId !== "ALL") {
+        whereClause.siteId = siteId;
+      } else if (companyId && companyId !== "ALL") {
+        whereClause.companyId = companyId;
+      }
     }
 
     const projects = await prisma.project.findMany({

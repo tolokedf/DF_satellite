@@ -4,12 +4,16 @@ import { getSessionUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
     const myTasks = searchParams.get("myTasks");
-    const user = await getSessionUser();
 
-    if (myTasks === "true" && user) {
+    if (myTasks === "true") {
       const tasks = await prisma.projectTask.findMany({
         where: {
           OR: [
@@ -32,6 +36,16 @@ export async function GET(req: Request) {
     }
 
     if (projectId) {
+      if (user.role === "CUSTOMER") {
+        const project = await prisma.project.findUnique({
+          where: { id: projectId },
+          select: { siteId: true },
+        });
+        if (!project || !project.siteId || !user.assignedSiteIds.includes(project.siteId)) {
+          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+      }
+
       const tasks = await prisma.projectTask.findMany({
         where: { projectId },
         orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
@@ -39,7 +53,15 @@ export async function GET(req: Request) {
       return NextResponse.json(tasks);
     }
 
+    const where: any = {};
+    if (user.role === "CUSTOMER") {
+      where.project = {
+        siteId: { in: user.assignedSiteIds },
+      };
+    }
+
     const tasks = await prisma.projectTask.findMany({
+      where,
       include: {
         project: {
           select: {

@@ -278,7 +278,9 @@ DF_satellite/
 ## 🛠️ 9. Operational Commands Quick Reference
 
 ```bash
-# Start the server (binds to 0.0.0.0:3001)
+# Initial Setup (npm install, .env, prisma generate, DB check, and build)
+setup.bat           # Windows 1-click setup
+
 # Start the server (binds to 0.0.0.0:3001)
 ./start.sh          # Linux
 start.bat           # Windows
@@ -337,3 +339,57 @@ If `npm run build` shows `Failed to type check` or `prisma schema validation err
    npm run build
    ```
    *(Or inspect specific lines by running `npx tsc --noEmit`)*
+
+---
+
+## 🧪 12. Full Webapp Test Audit & Bug Fixes Log (September 2026)
+
+A comprehensive professional end-to-end audit of all 54 routes, API endpoints, authentication flows, multi-tenant boundaries, and UI components was conducted. The following bugs and vulnerabilities were identified and resolved:
+
+1. **Authentication & Single-Device Login Enforcement (`src/lib/auth.ts`, `src/app/api/auth/logout/route.ts`):**
+   - **Bug:** `getSessionUser()` only checked `user.sessionToken !== data.sessionToken` when `data.sessionToken` was truthy. Stale sessions lacking a token could bypass single-device revocation.
+   - **Fix:** Added strict check: `if (user.sessionToken && (!data.sessionToken || user.sessionToken !== data.sessionToken)) return null;`.
+   - **Fix:** In `POST /api/auth/logout`, `user.sessionToken` is now set to `null` in the database to guarantee revoked tokens cannot be re-used.
+
+2. **Middleware API Handling & Auth Routing (`src/middleware.ts`):**
+   - **Bug:** Unauthenticated API requests were redirected via 307 to the `/login` HTML page, causing client-side `fetch().json()` calls to crash with `SyntaxError: Unexpected token '<'`.
+   - **Fix:** Middleware returns `{ error: "Unauthorized" }` with HTTP 401 for all unauthenticated `/api/*` requests.
+   - **UX Improvement:** Authenticated users visiting `/login` are automatically redirected to `/feed`.
+
+3. **Master Admin Protection & Role Escalation Security (`src/app/api/admin/users/route.ts`, `src/components/admin/AdminConsole.tsx`):**
+   - **Bug:** In `PATCH /api/admin/users`, an admin could inadvertently promote other accounts to `ADMIN` or alter the master admin account role.
+   - **Fix:** Added strict guards blocking promotion of any user to `ADMIN` and blocking changing the master admin's role.
+   - **Fix:** In `AdminConsole.tsx`, protected the master admin account delete button with `u.role !== "ADMIN"` in addition to `u.username !== "admin"`.
+   - **Fix:** Wrapped `JSON.parse(u.assignedSiteIds)` in `try/catch` to prevent 500 server crashes from malformed JSON.
+
+4. **Multi-Tenant Site Scoping Across Core APIs (`src/app/api/robots/route.ts`, `src/app/api/short-stops/route.ts`, `src/app/api/issues/route.ts`, `src/app/api/projects/route.ts`, `src/app/api/project-tasks/route.ts`, `src/app/api/milestones/route.ts`, `src/app/api/export/route.ts`):**
+   - **Bug:** When customer users selected a specific site dropdown filter, the condition `if (siteFilter) where.siteId = siteFilter` overwrote the requested site, forcing the query to all sites or failing.
+   - **Fix:** Implemented authorization check ensuring customers can only query a site if it exists in their `assignedSiteIds`. If unauthorized, access is denied.
+   - **Bug:** `GET /api/project-tasks` and `GET /api/milestones` returned all tasks and milestones across all companies to any authenticated user.
+   - **Fix:** Added `where.project = { siteId: { in: user.assignedSiteIds } }` scoping for customer accounts.
+   - **Bug:** `GET /api/export` and `GET /api/projects/[id]` lacked authentication and site ownership verification.
+   - **Fix:** Enforced authentication and customer site authorization checks before returning sensitive project details.
+
+5. **Collision-Safe Sequence ID Generation (`src/app/api/issues/route.ts`, `src/app/api/action-items/route.ts`):**
+   - **Bug:** `issueNo` and `itemNo` were generated using `prisma.count() + 1`. If items were deleted, duplicate identifiers like `ISS-003` or `OAL-003` were generated.
+   - **Fix:** Replaced naive count with highest existing sequence number lookup + 1.
+
+6. **Schedule Variance & Delay Calculation Permanent Lock Bug (`src/components/project/ProjectWorkspace.tsx`, `src/components/task-overview/TaskOverviewView.tsx`):**
+   - **Bug:** Newly created tasks stored `delayNote: "no delay"`. Because `computeDelay` checked `if (customNote === "no delay") return { isDelayed: false }`, tasks were permanently locked to "no delay" even when months overdue.
+   - **Fix:** `computeDelay` now evaluates date schedule variance first (`diffDays > 0`), and `handleAddTask` initializes with `delayNote: null`.
+   - **Fix:** Dispatched `window.dispatchEvent(new Event("projects-updated"))` on all task mutations so task overview and sidebar counts synchronize immediately.
+
+7. **Universal Date Format Standard (`dd/MM/yyyy` and `dd/MM/yyyy HH:mm`) Across Frontend Modules:**
+   - **Fix:** Updated non-standard `d/M/yyyy` formats to strictly `dd/MM/yyyy` across `FeedView.tsx`, `AnalyticsView.tsx`, `IssueAnalyticsView.tsx`, and `short-stops/page.tsx`.
+   - **Fix:** Exported CSV headers and printed reports now consistently display `dd/MM/yyyy HH:mm`.
+
+8. **Role-Based Workspace Permissions & UI Scoping (`src/components/project/ProjectWorkspace.tsx`, `src/components/layout/Sidebar.tsx`):**
+   - **Bug:** Customers could see "+ Add Task", "+ Add Project", and "Delete Project" buttons that returned 403 API errors upon interaction.
+   - **Fix:** Added `isEngineerOrAdmin` checks to `ProjectWorkspace.tsx` and `Sidebar.tsx`. Customers receive clean read-only views without administrative action buttons, editable input fields, or delete icons.
+
+9. **Server-Side Route Guards for Internal Pages (`src/app/admin/page.tsx`, `src/app/admin/database/page.tsx`, `src/app/task-overview/page.tsx`, `src/app/current-status/page.tsx`):**
+   - **Fix:** Non-admin users visiting `/admin` or `/admin/database` are redirected to `/feed` on the server.
+   - **Fix:** Customer users navigating directly to internal engineer pages (`/task-overview`, `/current-status`) are redirected to `/feed`.
+
+10. **Delay Indicator Styling Alignment (`src/components/task-overview/TaskOverviewView.tsx`, `src/components/task-overview/GanttChart.tsx`, `src/components/engineer/MyRoleView.tsx`):**
+    - **Fix:** Standardized all delayed badges to `bg-red-100 text-red-600 font-bold border border-red-200` and styled delayed finished dates with `text-red-600 font-bold`.

@@ -38,7 +38,7 @@ export default function GlobalShortStopsPage() {
             {stops.map((stop) => (
               <tr key={stop.id} className="hover:bg-slate-50 transition">
                 <td className="py-3 px-3 text-slate-600">
-                  {format(new Date(stop.startTime), "d/M/yyyy HH:mm")}
+                  {format(new Date(stop.startTime), "dd/MM/yyyy HH:mm")}
                 </td>
                 <td className="py-3 px-3 text-slate-800 font-medium">
                   {stop.site?.company?.name} - {stop.site?.name}

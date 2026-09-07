@@ -232,14 +232,14 @@ export default function MyRoleView({ currentUser }: MyRoleViewProps) {
           days,
           text: `+${days} days`,
           status: "DELAYED",
-          color: "bg-rose-100 text-rose-700 border-rose-200",
+          color: "bg-red-100 text-red-600 font-bold border-red-200",
         };
       } else {
         return {
           days: 0,
-          text: "0 days",
+          text: "no delay",
           status: "ON_TIME",
-          color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+          color: "bg-emerald-50 text-emerald-700 font-bold border-emerald-200",
         };
       }
     } else {
@@ -250,14 +250,14 @@ export default function MyRoleView({ currentUser }: MyRoleViewProps) {
           days,
           text: `+${days} days`,
           status: "OVERDUE",
-          color: "bg-amber-100 text-amber-800 border-amber-200",
+          color: "bg-red-100 text-red-600 font-bold border-red-200",
         };
       } else {
         return {
           days: 0,
-          text: "0 days",
+          text: "no delay",
           status: "ON_TRACK",
-          color: "bg-slate-100 text-slate-700 border-slate-200",
+          color: "bg-emerald-50 text-emerald-700 font-bold border-emerald-200",
         };
       }
     }
@@ -506,8 +506,12 @@ export default function MyRoleView({ currentUser }: MyRoleViewProps) {
                       {/* 4. Actual completion date */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {isCompleted ? (
-                          <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <div className={`flex items-center gap-1.5 font-medium ${
+                            delayInfo.days > 0 ? "text-red-600 font-bold" : "text-emerald-700"
+                          }`}>
+                            <CheckCircle2 className={`w-3.5 h-3.5 ${
+                              delayInfo.days > 0 ? "text-red-600" : "text-emerald-600"
+                            }`} />
                             <span>{format(new Date(m.actualCompletionDate!), "dd/MM/yyyy")}</span>
                           </div>
                         ) : (

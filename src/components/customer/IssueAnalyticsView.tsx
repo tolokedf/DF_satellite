@@ -126,7 +126,7 @@ export default function IssueAnalyticsView() {
 
   const handleExportCsv = () => {
     const headers = ["Issue No,Robot,Severity,Title,Status,Created At"];
-    const rows = filteredIssues.map((i) => `"${i.issueNo}","${i.robot?.code || "Site"}","${i.severity}","${i.title}","${i.status}","${format(new Date(i.createdAt), "d/M/yyyy")}"`);
+    const rows = filteredIssues.map((i) => `"${i.issueNo}","${i.robot?.code || "Site"}","${i.severity}","${i.title}","${i.status}","${format(new Date(i.createdAt), "dd/MM/yyyy HH:mm")}"`);
     const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -189,7 +189,7 @@ export default function IssueAnalyticsView() {
         </div>
 
         <p className="text-[11px] text-slate-500 font-medium mt-3 pt-2.5 border-t border-slate-100">
-          Showing: {format(new Date(startDate), "d/M/yyyy")} &rarr; {format(new Date(endDate), "d/M/yyyy")} • {filteredIssues.length} breakdown issues analyzed
+          Showing: {format(new Date(startDate), "dd/MM/yyyy")} &rarr; {format(new Date(endDate), "dd/MM/yyyy")} • {filteredIssues.length} breakdown issues analyzed
         </p>
       </div>
 

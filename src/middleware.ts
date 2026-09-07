@@ -4,10 +4,8 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get("df_satellite_session");
 
-  // Allow login page, static files, and auth API
+  // Allow static files and auth API
   if (
-    pathname === "/login" ||
-    pathname.startsWith("/login/") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
@@ -17,8 +15,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If not logged in, redirect to /login
+  // If already logged in and visiting /login, redirect to /feed
+  if (session?.value && (pathname === "/login" || pathname.startsWith("/login/"))) {
+    return NextResponse.redirect(new URL("/feed", request.url));
+  }
+
+  // Allow /login for unauthenticated users
+  if (pathname === "/login" || pathname.startsWith("/login/")) {
+    return NextResponse.next();
+  }
+
+  // If not logged in:
   if (!session?.value) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

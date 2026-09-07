@@ -1,5 +1,11 @@
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth";
 import AdminConsole from "@/components/admin/AdminConsole";
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const user = await getSessionUser();
+  if (!user || user.role !== "ADMIN") {
+    redirect("/feed");
+  }
   return <AdminConsole />;
 }

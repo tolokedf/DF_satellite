@@ -114,7 +114,7 @@ export default function FeedView() {
     const headers = ["ID,WHEN,AGV,ZONE,CATEGORY,LOCATION/STATION,PROBLEM,DESCRIPTION"];
     const rows = stops.map((s, idx) => {
       const id = `#${8014 - idx}`;
-      const when = format(new Date(s.startTime), "d/M/yyyy HH:mm");
+      const when = format(new Date(s.startTime), "dd/MM/yyyy HH:mm");
       const agv = s.robot?.code || "";
       const zone = s.zone || "";
       const cat = `"${s.category || ""}"`;
@@ -342,7 +342,7 @@ export default function FeedView() {
 
                     {/* WHEN */}
                     <td className="py-2.5 px-3.5 text-slate-600 font-mono text-[11px] whitespace-nowrap">
-                      {format(new Date(stop.startTime), "d/M/yyyy HH:mm")}
+                      {format(new Date(stop.startTime), "dd/MM/yyyy HH:mm")}
                     </td>
 
                     {/* AGV (Blue bold badge) */}

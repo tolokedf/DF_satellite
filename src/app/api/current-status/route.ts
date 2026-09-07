@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
 export async function GET(request: Request) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (user.role !== "ADMIN" && user.role !== "ENGINEER") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const team = searchParams.get("team") || "dfa";
 
