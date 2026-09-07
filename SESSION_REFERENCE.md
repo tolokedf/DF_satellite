@@ -283,8 +283,9 @@ DF_satellite/
 ./start.sh          # Linux
 start.bat           # Windows
 
-# Stop the server
-./stop.sh
+# Stop the server (strictly targets port 3001 only; leaves port 3000 and others untouched)
+./stop.sh           # Linux
+stop.bat            # Windows
 
 # Export database (creates timestamped ZIP & DF_Satellite_DB_latest.zip)
 ./export.sh         # Linux development laptop
