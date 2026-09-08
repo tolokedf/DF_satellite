@@ -393,3 +393,24 @@ A comprehensive professional end-to-end audit of all 54 routes, API endpoints, a
 
 10. **Delay Indicator Styling Alignment (`src/components/task-overview/TaskOverviewView.tsx`, `src/components/task-overview/GanttChart.tsx`, `src/components/engineer/MyRoleView.tsx`):**
     - **Fix:** Standardized all delayed badges to `bg-red-100 text-red-600 font-bold border border-red-200` and styled delayed finished dates with `text-red-600 font-bold`.
+
+11. **IDOR Security Patch & Issue Deletion (`src/app/api/issues/route.ts`):**
+    - **Bug:** `PATCH /api/issues` accepted any issue ID without verifying that customer accounts belonged to the issue's assigned site.
+    - **Fix:** Enforced site-scoped verification returning `403 Forbidden` on unauthorized site access.
+    - **Fix:** Added missing `DELETE /api/issues` endpoint with role verification.
+
+12. **Database Unique Constraint Safety (`src/app/api/robots/route.ts`, `src/app/api/projects/route.ts`):**
+    - **Bug:** Re-registering existing robot codes or project codes caused unhandled Prisma P2002 500 server crashes.
+    - **Fix:** Added pre-flight collision checks returning `409 Conflict` with clear error payloads.
+
+13. **Anti-Flicker Architecture in Project Workspace (`src/components/project/ProjectWorkspace.tsx`):**
+    - **Bug:** Clicking the "Done" checkbox or modifying tasks dispatched `projects-updated`, triggering `loadCurrentProject()` with `setLoading(true)`. This unmounted the entire workspace and flashed the full-screen loader on every single click.
+    - **Fix:** Added `showSpinner = false` parameter for background re-fetches so the loader is only shown on initial mount. Added sender tracking in custom events to avoid redundant self-reloads. Toggling tasks and inline edits is now completely flicker-free (60 FPS).
+
+14. **Reliable Due Date Picker Interaction (`src/components/project/ProjectWorkspace.tsx`):**
+    - **Bug:** Hidden `opacity-0` date inputs failed to open native date pickers on Chromium/Safari unless clicking the tiny hidden calendar icon.
+    - **Fix:** Wrapped inputs in interactive `<label>` containers, elevated with `z-10`, attached `onClick={(e) => e.currentTarget.showPicker?.()}`, and added an instant Clear Date (`X`) button.
+
+15. **Stale Session Cookie Redirect Loop Resolution (`src/middleware.ts`, `src/context/SiteContext.tsx`):**
+    - **Bug:** Stale cookies from before database re-seeds caused `middleware.ts` to redirect `/login` to `/feed`, which then bounced back to `/login` (`ERR_TOO_MANY_REDIRECTS`).
+    - **Fix:** Removed `/login` redirect in middleware and ensured `SiteContext` calls `POST /api/auth/logout` to clear the `httpOnly` cookie on expired sessions.
