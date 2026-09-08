@@ -96,13 +96,17 @@ export default function TaskOverviewView() {
     }
 
     const dueDate = new Date(dueDateStr);
+    if (isNaN(dueDate.getTime())) {
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
+    }
+
     const finishDate = actualFinishedDateStr
       ? new Date(actualFinishedDateStr)
       : isDone
       ? null
       : new Date();
 
-    if (!finishDate) {
+    if (!finishDate || isNaN(finishDate.getTime())) {
       return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
 

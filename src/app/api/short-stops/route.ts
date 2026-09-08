@@ -77,23 +77,58 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
+    if (!body.siteId) {
+      return NextResponse.json({ error: "Site ID is required" }, { status: 400 });
+    }
+
+    if (!body.robotId) {
+      return NextResponse.json({ error: "Robot ID is required" }, { status: 400 });
+    }
+
+    if (!body.category || !body.category.trim()) {
+      return NextResponse.json({ error: "Stoppage category is required" }, { status: 400 });
+    }
+
     // Verify site permission
     if (user.role === "CUSTOMER" && !user.assignedSiteIds.includes(body.siteId)) {
       return NextResponse.json({ error: "Forbidden: Not permitted for this site" }, { status: 403 });
     }
 
+    // Verify robot exists and belongs to the site
+    const robot = await prisma.robot.findUnique({ where: { id: body.robotId } });
+    if (!robot) {
+      return NextResponse.json({ error: "Robot not found" }, { status: 400 });
+    }
+    if (robot.siteId !== body.siteId) {
+      return NextResponse.json({ error: "Robot does not belong to the specified site" }, { status: 400 });
+    }
+
     const startTime = body.startTime ? new Date(body.startTime) : new Date();
-    const durationMinutes = parseFloat(body.durationMinutes) || 1.0;
-    const recoveryTime = body.recoveryTime
-      ? new Date(body.recoveryTime)
-      : new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+    if (isNaN(startTime.getTime())) {
+      return NextResponse.json({ error: "Invalid startTime format" }, { status: 400 });
+    }
+
+    const durationMinutes = Math.max(0.1, parseFloat(body.durationMinutes) || 1.0);
+    let recoveryTime: Date;
+    if (body.recoveryTime) {
+      recoveryTime = new Date(body.recoveryTime);
+      if (isNaN(recoveryTime.getTime())) {
+        return NextResponse.json({ error: "Invalid recoveryTime format" }, { status: 400 });
+      }
+      if (recoveryTime.getTime() < startTime.getTime()) {
+        // Automatically rollover to next day if recovery clock time was smaller than start clock time
+        recoveryTime = new Date(recoveryTime.getTime() + 24 * 60 * 60 * 1000);
+      }
+    } else {
+      recoveryTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+    }
 
     const stop = await prisma.shortStopLog.create({
       data: {
         siteId: body.siteId,
         robotId: body.robotId,
-        category: body.category || "General Stop",
-        zone: body.zone || null,
+        category: body.category.trim(),
+        zone: body.zone || robot.lineZone || null,
         specificLocation: body.specificLocation || null,
         problemSummary: body.problemSummary || null,
         description: body.description || null,
@@ -114,6 +149,66 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(stop);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const user = await getSessionUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { id, ...data } = body;
+    if (!id) return NextResponse.json({ error: "Stop log ID is required" }, { status: 400 });
+
+    const existing = await prisma.shortStopLog.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Short stop log not found" }, { status: 404 });
+
+    if (user.role === "CUSTOMER" && !user.assignedSiteIds.includes(existing.siteId)) {
+      return NextResponse.json({ error: "Forbidden: Access denied to this log" }, { status: 403 });
+    }
+
+    if (data.startTime) {
+      data.startTime = new Date(data.startTime);
+      if (isNaN(data.startTime.getTime())) return NextResponse.json({ error: "Invalid startTime" }, { status: 400 });
+    }
+    if (data.recoveryTime) {
+      data.recoveryTime = new Date(data.recoveryTime);
+      if (isNaN(data.recoveryTime.getTime())) return NextResponse.json({ error: "Invalid recoveryTime" }, { status: 400 });
+    }
+
+    const updated = await prisma.shortStopLog.update({
+      where: { id },
+      data,
+      include: { robot: true, site: true },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const user = await getSessionUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Stop log ID is required" }, { status: 400 });
+
+    const existing = await prisma.shortStopLog.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Short stop log not found" }, { status: 404 });
+
+    if (user.role === "CUSTOMER" && !user.assignedSiteIds.includes(existing.siteId)) {
+      return NextResponse.json({ error: "Forbidden: Access denied to this log" }, { status: 403 });
+    }
+
+    await prisma.shortStopLog.delete({ where: { id } });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

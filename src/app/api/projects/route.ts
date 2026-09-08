@@ -93,6 +93,23 @@ export async function POST(req: Request) {
 
     const code = (body.code && body.code.trim()) || `PRJ-${Date.now().toString(36).toUpperCase()}`;
 
+    const existing = await prisma.project.findUnique({ where: { code } });
+    if (existing) {
+      return NextResponse.json({ error: `Project with code '${code}' already exists` }, { status: 409 });
+    }
+
+    let startDate: Date | null = new Date();
+    if (body.startDate) {
+      const parsedStart = new Date(body.startDate);
+      if (!isNaN(parsedStart.getTime())) startDate = parsedStart;
+    }
+
+    let targetGoLive: Date | null = null;
+    if (body.targetGoLive) {
+      const parsedGoLive = new Date(body.targetGoLive);
+      if (!isNaN(parsedGoLive.getTime())) targetGoLive = parsedGoLive;
+    }
+
     const project = await prisma.project.create({
       data: {
         name: body.name.trim(),
@@ -100,10 +117,10 @@ export async function POST(req: Request) {
         companyId,
         siteId,
         leadEngineer: body.leadEngineer || user.name,
-        startDate: body.startDate ? new Date(body.startDate) : new Date(),
-        targetGoLive: body.targetGoLive ? new Date(body.targetGoLive) : null,
-        description: body.description,
-        gdriveFolderUrl: body.gdriveFolderUrl,
+        startDate,
+        targetGoLive,
+        description: body.description?.trim() || null,
+        gdriveFolderUrl: body.gdriveFolderUrl?.trim() || null,
         health: body.health || "ON_TRACK",
       },
       include: {
@@ -113,7 +130,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(project);
+    return NextResponse.json(project, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

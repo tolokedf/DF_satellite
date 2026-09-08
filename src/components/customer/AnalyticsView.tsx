@@ -97,17 +97,51 @@ export default function AnalyticsView() {
   const filteredStops = useMemo(() => {
     const sDate = new Date(`${startDate}T00:00:00`);
     const eDate = new Date(`${endDate}T23:59:59`);
+    const sTime = sDate.getTime();
+    const eTime = eDate.getTime();
+
+    const isRdCategory = (cat: string) => {
+      const lower = (cat || "").toLowerCase();
+      return (
+        lower.includes("map") ||
+        lower.includes("livox") ||
+        lower.includes("software") ||
+        lower.includes("traffic") ||
+        lower.includes("firmware") ||
+        lower.includes("algo") ||
+        lower.includes("lidar") ||
+        lower.includes("nav")
+      );
+    };
+
+    const isCustomerCategory = (cat: string) => {
+      const lower = (cat || "").toLowerCase();
+      return (
+        lower.includes("machine") ||
+        lower.includes("operation") ||
+        lower.includes("facility") ||
+        lower.includes("rack") ||
+        lower.includes("conveyor") ||
+        lower.includes("station") ||
+        lower.includes("power") ||
+        lower.includes("operator")
+      );
+    };
 
     return stops.filter((item) => {
       const itemTime = new Date(item.startTime).getTime();
-      if (itemTime < sDate.getTime() || itemTime > eDate.getTime()) {
-        return false;
-      }
+      if (!isNaN(sTime) && itemTime < sTime) return false;
+      if (!isNaN(eTime) && itemTime > eTime) return false;
       if (selectedSource === "Manual" && item.source !== "Manual") return false;
       if (selectedSource === "Auto (synced)" && item.source !== "Auto (synced)") return false;
+
+      if (selectedTeam === "R&D" && !isRdCategory(item.category)) return false;
+      if (selectedTeam === "ST" && !isCustomerCategory(item.category)) return false;
+      if (selectedTeam === "Field" && (isRdCategory(item.category) || isCustomerCategory(item.category))) return false;
+
       return true;
     });
-  }, [stops, startDate, endDate, selectedSource]);
+  }, [stops, startDate, endDate, selectedSource, selectedTeam]);
 
   // Dynamic Chart & KPI Data
   const { chartData, kpis, topCategories } = useMemo(() => {

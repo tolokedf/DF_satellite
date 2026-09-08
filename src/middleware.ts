@@ -15,12 +15,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If already logged in and visiting /login, redirect to /feed
-  if (session?.value && (pathname === "/login" || pathname.startsWith("/login/"))) {
-    return NextResponse.redirect(new URL("/feed", request.url));
-  }
-
-  // Allow /login for unauthenticated users
+  // Always allow /login so users can authenticate or switch accounts without redirect loops
   if (pathname === "/login" || pathname.startsWith("/login/")) {
     return NextResponse.next();
   }

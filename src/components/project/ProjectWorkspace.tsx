@@ -19,7 +19,8 @@ import {
   Sparkles,
   ExternalLink,
   Search,
-  Filter
+  Filter,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -114,8 +115,8 @@ export default function ProjectWorkspace() {
   };
 
   // Load project details and tasks
-  const loadCurrentProject = async (projId: string) => {
-    setLoading(true);
+  const loadCurrentProject = async (projId: string, showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     try {
       const res = await fetch(`/api/projects/${projId}`);
       if (!res.ok) throw new Error("Failed to load project");
@@ -131,13 +132,13 @@ export default function ProjectWorkspace() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
   // Load My Tasks
-  const loadMyTasks = async () => {
-    setLoading(true);
+  const loadMyTasks = async (showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     try {
       const res = await fetch("/api/project-tasks?myTasks=true");
       if (!res.ok) throw new Error("Failed to load my tasks");
@@ -146,30 +147,32 @@ export default function ProjectWorkspace() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchProjects().then((projList) => {
       if (viewMode === "my-task") {
-        loadMyTasks();
+        loadMyTasks(true);
       } else {
         if (selectedProjectId) {
-          loadCurrentProject(selectedProjectId);
+          loadCurrentProject(selectedProjectId, !currentProject);
         } else if (projList && projList.length > 0) {
           router.replace(`/project?id=${projList[0].id}`);
-          loadCurrentProject(projList[0].id);
+          loadCurrentProject(projList[0].id, true);
         } else {
           setLoading(false);
         }
       }
     });
 
-    const handleUpdate = () => {
+    const handleUpdate = (e: any) => {
       fetchProjects();
-      if (selectedProjectId) loadCurrentProject(selectedProjectId);
-      if (viewMode === "my-task") loadMyTasks();
+      // Skip redundant re-render if the event was dispatched by this workspace
+      if (e?.detail?.sender === "ProjectWorkspace") return;
+      if (selectedProjectId) loadCurrentProject(selectedProjectId, false);
+      if (viewMode === "my-task") loadMyTasks(false);
     };
 
     window.addEventListener("projects-updated", handleUpdate);
@@ -188,13 +191,17 @@ export default function ProjectWorkspace() {
     }
 
     const dueDate = new Date(dueDateStr);
+    if (isNaN(dueDate.getTime())) {
+      return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
+    }
+
     const finishDate = actualFinishedDateStr
       ? new Date(actualFinishedDateStr)
       : isDone
       ? null
       : new Date();
 
-    if (!finishDate) {
+    if (!finishDate || isNaN(finishDate.getTime())) {
       return { text: customNote || "no delay", isDelayed: false, diffDays: 0 };
     }
 
@@ -241,12 +248,12 @@ export default function ProjectWorkspace() {
 
       setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
       setMyTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
-      window.dispatchEvent(new Event("projects-updated"));
+      window.dispatchEvent(new CustomEvent("projects-updated", { detail: { sender: "ProjectWorkspace" } }));
     } catch (err) {
       console.error(err);
       // Revert on error
-      if (selectedProjectId) loadCurrentProject(selectedProjectId);
-      if (viewMode === "my-task") loadMyTasks();
+      if (selectedProjectId) loadCurrentProject(selectedProjectId, false);
+      if (viewMode === "my-task") loadMyTasks(false);
     }
   };
 
@@ -259,7 +266,7 @@ export default function ProjectWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ assignee }),
       });
-      window.dispatchEvent(new Event("projects-updated"));
+      window.dispatchEvent(new CustomEvent("projects-updated", { detail: { sender: "ProjectWorkspace" } }));
     } catch (err) {
       console.error(err);
     }
@@ -274,7 +281,7 @@ export default function ProjectWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dueDate }),
       });
-      window.dispatchEvent(new Event("projects-updated"));
+      window.dispatchEvent(new CustomEvent("projects-updated", { detail: { sender: "ProjectWorkspace" } }));
     } catch (err) {
       console.error(err);
     }
@@ -289,7 +296,7 @@ export default function ProjectWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ actualFinishedDate }),
       });
-      window.dispatchEvent(new Event("projects-updated"));
+      window.dispatchEvent(new CustomEvent("projects-updated", { detail: { sender: "ProjectWorkspace" } }));
     } catch (err) {
       console.error(err);
     }
@@ -302,7 +309,7 @@ export default function ProjectWorkspace() {
     setMyTasks((prev) => prev.filter((t) => t.id !== taskId));
     try {
       await fetch(`/api/project-tasks/${taskId}`, { method: "DELETE" });
-      window.dispatchEvent(new Event("projects-updated"));
+      window.dispatchEvent(new CustomEvent("projects-updated", { detail: { sender: "ProjectWorkspace" } }));
     } catch (err) {
       console.error(err);
     }
@@ -465,21 +472,43 @@ export default function ProjectWorkspace() {
               </select>
             </div>
 
-            <div className="w-40">
-              <div className="relative inline-flex items-center w-full">
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 w-full">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="font-mono text-[11px]">
-                    {newDueDate ? format(new Date(newDueDate), "dd/MM/yyyy") : <span className="text-slate-400 font-sans">Select date</span>}
-                  </span>
+            <div className="w-44">
+              <label className="relative inline-flex items-center w-full cursor-pointer group">
+                <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 bg-white group-hover:bg-slate-50 border border-slate-300 group-hover:border-slate-400 rounded-lg text-xs text-slate-800 w-full transition shadow-xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 shrink-0 transition-colors" />
+                    <span className="font-mono text-[11px] truncate">
+                      {newDueDate ? format(new Date(newDueDate), "dd/MM/yyyy") : <span className="text-slate-400 font-sans">Select date</span>}
+                    </span>
+                  </div>
+                  {newDueDate && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setNewDueDate("");
+                      }}
+                      className="text-slate-400 hover:text-slate-600 p-0.5 rounded transition z-20"
+                      title="Clear date"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
                 <input
                   type="date"
                   value={newDueDate}
+                  onClick={(e) => {
+                    try {
+                      e.currentTarget.showPicker?.();
+                    } catch {}
+                  }}
                   onChange={(e) => setNewDueDate(e.target.value)}
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                  title="Click to select due date"
                 />
-              </div>
+              </label>
             </div>
 
             <button
@@ -515,7 +544,7 @@ export default function ProjectWorkspace() {
               {taskList.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-6 text-slate-400 italic">
-                    No items in {title.toLowerCase()} yet. Click "+ Add {section === "OPEN_ACTION" ? "Action" : section === "MILESTONE" ? "Milestone" : "Issue"}" above to add one.
+                    No items in {title.toLowerCase()} yet. Click &quot;+ Add {section === "OPEN_ACTION" ? "Action" : section === "MILESTONE" ? "Milestone" : "Issue"}&quot; above to add one.
                   </td>
                 </tr>
               ) : (
@@ -581,54 +610,104 @@ export default function ProjectWorkspace() {
 
                       {/* Column 3: Due Date */}
                       <td className="py-2.5 px-3 align-middle">
-                        <div className="relative inline-flex items-center">
-                          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs text-slate-700 min-w-[110px]">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="font-mono text-[11px] font-medium">
-                              {task.dueDate ? format(new Date(task.dueDate), "dd/MM/yyyy") : <span className="text-slate-400 font-sans">Select date</span>}
-                            </span>
+                        <label className={`relative inline-flex items-center ${isEngineerOrAdmin ? "cursor-pointer group" : "cursor-default"}`}>
+                          <div className={`flex items-center justify-between gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 min-w-[125px] transition ${
+                            isEngineerOrAdmin ? "group-hover:bg-slate-100 group-hover:border-slate-300 shadow-2xs" : ""
+                          }`}>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Calendar className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                                isEngineerOrAdmin ? "text-slate-400 group-hover:text-blue-600" : "text-slate-300"
+                              }`} />
+                              <span className="font-mono text-[11px] font-medium">
+                                {task.dueDate ? format(new Date(task.dueDate), "dd/MM/yyyy") : <span className="text-slate-400 font-sans">Select date</span>}
+                              </span>
+                            </div>
+                            {isEngineerOrAdmin && task.dueDate && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleDueDateChange(task, "");
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition z-20 shrink-0"
+                                title="Clear due date"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                           {isEngineerOrAdmin && (
                             <input
                               type="date"
                               value={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
+                              onClick={(e) => {
+                                try {
+                                  e.currentTarget.showPicker?.();
+                                } catch {}
+                              }}
                               onChange={(e) => handleDueDateChange(task, e.target.value)}
-                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                              title="Click to select due date"
                             />
                           )}
-                        </div>
+                        </label>
                       </td>
 
                       {/* Column 4: Actual Finished Date */}
                       <td className="py-2.5 px-3 align-middle">
-                        <div className="relative inline-flex items-center">
-                          <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs min-w-[110px] border ${
+                        <label className={`relative inline-flex items-center ${isEngineerOrAdmin ? "cursor-pointer group" : "cursor-default"}`}>
+                          <div className={`flex items-center justify-between gap-1.5 px-2 py-1 rounded text-xs min-w-[125px] border transition ${
                             delay.isDelayed && task.actualFinishedDate
                               ? "bg-red-50 border-red-200 text-red-600 font-bold"
                               : task.actualFinishedDate
                               ? "bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold"
-                              : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-400"
+                              : `bg-slate-50 border-slate-200 text-slate-400 ${isEngineerOrAdmin ? "group-hover:bg-slate-100 group-hover:border-slate-300 shadow-2xs" : ""}`
                           }`}>
-                            <Calendar className={`w-3.5 h-3.5 shrink-0 ${
-                              delay.isDelayed && task.actualFinishedDate
-                                ? "text-red-500"
-                                : task.actualFinishedDate
-                                ? "text-emerald-500"
-                                : "text-slate-400"
-                            }`} />
-                            <span className="font-mono text-[11px]">
-                              {task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "dd/MM/yyyy") : <span className="font-sans italic text-slate-400">Set date</span>}
-                            </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Calendar className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                                delay.isDelayed && task.actualFinishedDate
+                                  ? "text-red-500"
+                                  : task.actualFinishedDate
+                                  ? "text-emerald-500"
+                                  : isEngineerOrAdmin
+                                  ? "text-slate-400 group-hover:text-blue-600"
+                                  : "text-slate-300"
+                              }`} />
+                              <span className="font-mono text-[11px]">
+                                {task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "dd/MM/yyyy") : <span className="font-sans italic text-slate-400">Set date</span>}
+                              </span>
+                            </div>
+                            {isEngineerOrAdmin && task.actualFinishedDate && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleFinishedDateChange(task, "");
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition z-20 shrink-0"
+                                title="Clear finished date"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                           {isEngineerOrAdmin && (
                             <input
                               type="date"
                               value={task.actualFinishedDate ? format(new Date(task.actualFinishedDate), "yyyy-MM-dd") : ""}
+                              onClick={(e) => {
+                                try {
+                                  e.currentTarget.showPicker?.();
+                                } catch {}
+                              }}
                               onChange={(e) => handleFinishedDateChange(task, e.target.value)}
-                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                              title="Click to select finished date"
                             />
                           )}
-                        </div>
+                        </label>
                       </td>
 
                       {/* Column 5: Delay */}

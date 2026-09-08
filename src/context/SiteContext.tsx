@@ -95,11 +95,10 @@ export function SiteProvider({
 
   useEffect(() => {
     if (!currentUser) {
-      if (typeof window !== "undefined") {
-        document.cookie = "df_satellite_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-        if (window.location.pathname !== "/login") {
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        fetch("/api/auth/logout", { method: "POST" }).finally(() => {
           window.location.href = "/login";
-        }
+        });
       }
       setIsLoading(false);
       return;

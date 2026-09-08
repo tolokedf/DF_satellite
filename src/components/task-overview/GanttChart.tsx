@@ -63,21 +63,24 @@ export default function GanttChart({ projects }: GanttChartProps) {
     let maxTime = projects.length > 0 ? 0 : defaultEnd;
 
     projects.forEach((p) => {
-      const pStart = p.startDate ? new Date(p.startDate).getTime() : new Date(p.createdAt).getTime();
+      let pStart = p.startDate ? new Date(p.startDate).getTime() : new Date(p.createdAt).getTime();
+      if (isNaN(pStart)) pStart = defaultStart;
       if (pStart < minTime) minTime = pStart;
       if (pStart > maxTime) maxTime = pStart;
 
       (p.tasks || []).forEach((t) => {
         if (t.section === "MILESTONE" && t.dueDate) {
           const dTime = new Date(t.dueDate).getTime();
-          if (dTime > maxTime) maxTime = dTime;
-          if (dTime < minTime) minTime = dTime;
+          if (!isNaN(dTime)) {
+            if (dTime > maxTime) maxTime = dTime;
+            if (dTime < minTime) minTime = dTime;
+          }
         }
       });
     });
 
-    if (minTime === Number.MAX_SAFE_INTEGER) minTime = defaultStart;
-    if (maxTime === 0 || maxTime <= minTime) maxTime = defaultEnd;
+    if (minTime === Number.MAX_SAFE_INTEGER || isNaN(minTime)) minTime = defaultStart;
+    if (maxTime === 0 || maxTime <= minTime || isNaN(maxTime)) maxTime = defaultEnd;
 
     // Add padding days at ends
     const start = new Date(minTime - 2 * 86400000);
@@ -112,8 +115,11 @@ export default function GanttChart({ projects }: GanttChartProps) {
 
   // Helper to convert date to percentage along timeline
   const getPercent = (dateStr: string | Date) => {
+    if (!dateStr) return 0;
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 0;
     const diff = differenceInDays(d, minDate);
+    if (isNaN(diff)) return 0;
     return Math.min(100, Math.max(0, (diff / totalDays) * 100));
   };
 

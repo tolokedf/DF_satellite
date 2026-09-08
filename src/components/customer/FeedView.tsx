@@ -24,6 +24,19 @@ export default function FeedView() {
   // Table display options
   const [compact, setCompact] = useState<boolean>(false);
   const [wrapText, setWrapText] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 25;
+
+  const safeDate = (dateVal: any, fmt: string = "dd/MM/yyyy HH:mm") => {
+    if (!dateVal) return "-";
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return "-";
+      return format(d, fmt);
+    } catch {
+      return "-";
+    }
+  };
 
   // Available filter options
   const [zonesList, setZonesList] = useState<string[]>([]);
@@ -50,6 +63,7 @@ export default function FeedView() {
       .then((data) => {
         if (Array.isArray(data)) {
           setStops(data);
+          setCurrentPage(1);
           // Collect dynamic zones & categories
           const zSet = new Set<string>();
           const cSet = new Set<string>();
@@ -113,8 +127,8 @@ export default function FeedView() {
     if (stops.length === 0) return;
     const headers = ["ID,WHEN,AGV,ZONE,CATEGORY,LOCATION/STATION,PROBLEM,DESCRIPTION"];
     const rows = stops.map((s, idx) => {
-      const id = `#${8014 - idx}`;
-      const when = format(new Date(s.startTime), "dd/MM/yyyy HH:mm");
+      const id = `#${s.id ? s.id.slice(-6).toUpperCase() : (idx + 1)}`;
+      const when = safeDate(s.startTime, "dd/MM/yyyy HH:mm");
       const agv = s.robot?.code || "";
       const zone = s.zone || "";
       const cat = `"${s.category || ""}"`;
@@ -127,7 +141,7 @@ export default function FeedView() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `short_stops_${format(new Date(), "yyyyMMdd_HHmm")}.csv`);
+    link.setAttribute("download", `short_stops_${safeDate(new Date(), "yyyyMMdd_HHmm")}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -251,7 +265,7 @@ export default function FeedView() {
       {/* Action Sub-Bar matching screenshot */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
         <div className="flex items-center space-x-2">
-          <span className="text-base font-bold text-slate-900">{stops.length || 4290} stops</span>
+          <span className="text-base font-bold text-slate-900">{stops.length} stops</span>
           <span className="flex items-center text-xs font-semibold text-slate-600 gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             live
@@ -297,7 +311,7 @@ export default function FeedView() {
         </div>
       </div>
 
-      {/* Main Table matching Pasted image (2).png */}
+      {/* Main Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse min-w-[760px]">
           <thead>
@@ -326,74 +340,116 @@ export default function FeedView() {
                 </td>
               </tr>
             ) : (
-              stops.map((stop, idx) => {
-                const fakeId = `#${8014 - idx}`;
-                return (
-                  <tr
-                    key={stop.id}
-                    className={`hover:bg-slate-50/80 transition ${
-                      compact ? "py-1.5" : "py-3"
-                    }`}
-                  >
-                    {/* ID */}
-                    <td className="py-2.5 px-3.5 font-bold text-slate-800 shrink-0">
-                      {fakeId}
-                    </td>
+              stops
+                .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                .map((stop, idx) => {
+                  const itemIndex = (currentPage - 1) * pageSize + idx;
+                  const displayId = `#${stop.id ? stop.id.slice(-6).toUpperCase() : (itemIndex + 1)}`;
+                  return (
+                    <tr
+                      key={stop.id}
+                      className={`hover:bg-slate-50/80 transition ${
+                        compact ? "py-1.5" : "py-3"
+                      }`}
+                    >
+                      {/* ID */}
+                      <td className="py-2.5 px-3.5 font-bold text-slate-800 shrink-0">
+                        {displayId}
+                      </td>
 
-                    {/* WHEN */}
-                    <td className="py-2.5 px-3.5 text-slate-600 font-mono text-[11px] whitespace-nowrap">
-                      {format(new Date(stop.startTime), "dd/MM/yyyy HH:mm")}
-                    </td>
+                      {/* WHEN */}
+                      <td className="py-2.5 px-3.5 text-slate-600 font-mono text-[11px] whitespace-nowrap">
+                        {safeDate(stop.startTime, "dd/MM/yyyy HH:mm")}
+                      </td>
 
-                    {/* AGV (Blue bold badge) */}
-                    <td className="py-2.5 px-3.5">
-                      <span className="font-bold text-blue-700 whitespace-nowrap">
-                        {stop.robot?.code || "AGV 1"}
-                      </span>
-                    </td>
+                      {/* AGV (Blue bold badge) */}
+                      <td className="py-2.5 px-3.5">
+                        <span className="font-bold text-blue-700 whitespace-nowrap">
+                          {stop.robot?.code || "AGV 1"}
+                        </span>
+                      </td>
 
-                    {/* ZONE (Gray pill) */}
-                    <td className="py-2.5 px-3.5">
-                      <span className="inline-block bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                        {stop.zone ? stop.zone.replace("Zone ", "").charAt(0) : "F"}
-                      </span>
-                    </td>
+                      {/* ZONE (Gray pill) */}
+                      <td className="py-2.5 px-3.5">
+                        <span className="inline-block bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                          {stop.zone ? stop.zone.replace("Zone ", "").charAt(0) : "F"}
+                        </span>
+                      </td>
 
-                    {/* CATEGORY (Purple soft pill) */}
-                    <td className="py-2.5 px-3.5">
-                      <span className="inline-block bg-indigo-50 text-indigo-700 text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-indigo-100/60 whitespace-nowrap">
-                        {stop.category}
-                      </span>
-                    </td>
+                      {/* CATEGORY (Purple soft pill) */}
+                      <td className="py-2.5 px-3.5">
+                        <span className="inline-block bg-indigo-50 text-indigo-700 text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-indigo-100/60 whitespace-nowrap">
+                          {stop.category}
+                        </span>
+                      </td>
 
-                    {/* LOCATION / STATION */}
-                    <td className="py-2.5 px-3.5 text-slate-700 font-medium">
-                      {stop.specificLocation || stop.zone || "-"}
-                    </td>
+                      {/* LOCATION / STATION */}
+                      <td className="py-2.5 px-3.5 text-slate-700 font-medium">
+                        {stop.specificLocation || stop.zone || "-"}
+                      </td>
 
-                    {/* PROBLEM */}
-                    <td className={`py-2.5 px-3.5 text-slate-800 ${wrapText ? "" : "truncate max-w-xs"}`}>
-                      {stop.problemSummary || stop.recoveryAction || "-"}
-                    </td>
+                      {/* PROBLEM */}
+                      <td className={`py-2.5 px-3.5 text-slate-800 ${wrapText ? "" : "truncate max-w-xs"}`}>
+                        {stop.problemSummary || stop.recoveryAction || "-"}
+                      </td>
 
-                    {/* DESCRIPTION */}
-                    <td className={`py-2.5 px-3.5 text-slate-500 ${wrapText ? "" : "truncate max-w-sm"}`}>
-                      {stop.description || stop.notes || "-"}
-                    </td>
-                  </tr>
-                );
-              })
+                      {/* DESCRIPTION */}
+                      <td className={`py-2.5 px-3.5 text-slate-500 ${wrapText ? "" : "truncate max-w-sm"}`}>
+                        {stop.description || stop.notes || "-"}
+                      </td>
+                    </tr>
+                  );
+                })
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination Footer matching screenshot: Page 1 of 22 Next > Last >> */}
-      <div className="flex items-center justify-center space-x-4 pt-3 pb-6 text-xs text-slate-600">
-        <span>Page 1 of 22</span>
-        <button className="hover:text-blue-600 font-medium">Next &rsaquo;</button>
-        <button className="hover:text-blue-600 font-medium">Last &raquo;</button>
-      </div>
+      {/* Pagination Footer with real page calculation */}
+      {stops.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 pb-6 text-xs text-slate-600 px-2">
+          <span>
+            Showing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, stops.length)} of {stops.length} stops
+          </span>
+          <div className="flex items-center space-x-1.5">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none font-medium transition"
+            >
+              &laquo; First
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none font-medium transition"
+            >
+              &lsaquo; Prev
+            </button>
+            <span className="font-semibold px-2">
+              Page {currentPage} of {Math.max(1, Math.ceil(stops.length / pageSize))}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(Math.ceil(stops.length / pageSize), p + 1))}
+              disabled={currentPage >= Math.ceil(stops.length / pageSize)}
+              className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none font-medium transition"
+            >
+              Next &rsaquo;
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.ceil(stops.length / pageSize))}
+              disabled={currentPage >= Math.ceil(stops.length / pageSize)}
+              className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none font-medium transition"
+            >
+              Last &raquo;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -705,7 +705,7 @@ export default function StandardProjectWorkspace({ project, onRefresh }: Standar
                     {dar.nextPlan && (
                       <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-100">
                         <span className="font-bold text-blue-900 block text-[10px] uppercase mb-0.5">
-                          Tomorrow's Plan
+                          Tomorrow&apos;s Plan
                         </span>
                         <p className="text-slate-700 whitespace-pre-wrap">{dar.nextPlan}</p>
                       </div>

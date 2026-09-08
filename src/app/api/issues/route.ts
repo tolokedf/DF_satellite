@@ -62,9 +62,28 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
+    if (!body.title || !body.title.trim()) {
+      return NextResponse.json({ error: "Issue title is required" }, { status: 400 });
+    }
+
+    if (!body.siteId) {
+      return NextResponse.json({ error: "Site ID is required" }, { status: 400 });
+    }
+
     // Verify site permission
     if (user.role === "CUSTOMER" && !user.assignedSiteIds.includes(body.siteId)) {
       return NextResponse.json({ error: "Forbidden: Not permitted for this site" }, { status: 403 });
+    }
+
+    // Verify robot belongs to site if specified
+    if (body.robotId) {
+      const robot = await prisma.robot.findUnique({ where: { id: body.robotId } });
+      if (!robot) {
+        return NextResponse.json({ error: "Robot not found" }, { status: 400 });
+      }
+      if (robot.siteId !== body.siteId) {
+        return NextResponse.json({ error: "Robot does not belong to the specified site" }, { status: 400 });
+      }
     }
 
     const latestIssue = await prisma.issue.findFirst({
@@ -87,13 +106,13 @@ export async function POST(req: Request) {
         projectId: body.projectId || null,
         siteId: body.siteId,
         robotId: body.robotId || null,
-        title: body.title,
-        description: body.description,
+        title: body.title.trim(),
+        description: body.description?.trim() || null,
         severity: body.severity || "MODERATE",
         rootCauseCategory: body.rootCauseCategory || "OTHER",
-        fiveWhyAnalysis: body.fiveWhyAnalysis,
-        immediateAction: body.immediateAction,
-        permanentCountermeasure: body.permanentCountermeasure,
+        fiveWhyAnalysis: body.fiveWhyAnalysis?.trim() || null,
+        immediateAction: body.immediateAction?.trim() || null,
+        permanentCountermeasure: body.permanentCountermeasure?.trim() || null,
         status: body.status || "OPEN",
         loggedBy: user.name + (user.companyName ? ` (${user.companyName})` : ""),
         assignedTo: body.assignedTo || null,
@@ -118,8 +137,29 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { id, ...data } = body;
 
+    if (!id) {
+      return NextResponse.json({ error: "Issue ID is required" }, { status: 400 });
+    }
+
+    const existing = await prisma.issue.findUnique({
+      where: { id },
+      include: { site: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+    }
+
+    // IDOR Protection: Customers can ONLY update issues for their assigned sites
+    if (user.role === "CUSTOMER" && !user.assignedSiteIds.includes(existing.siteId)) {
+      return NextResponse.json({ error: "Forbidden: Access denied to this issue" }, { status: 403 });
+    }
+
+    // Closed timestamp management
     if (data.status === "CLOSED" && !data.closedAt) {
       data.closedAt = new Date();
+    } else if (data.status && data.status !== "CLOSED") {
+      data.closedAt = null;
     }
 
     const updated = await prisma.issue.update({
@@ -129,6 +169,34 @@ export async function PATCH(req: Request) {
     });
 
     return NextResponse.json(updated);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const user = await getSessionUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Issue ID is required" }, { status: 400 });
+    }
+
+    const existing = await prisma.issue.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+    }
+
+    // Role check: Customers can only delete if assigned to site, engineers/admins can delete any
+    if (user.role === "CUSTOMER" && !user.assignedSiteIds.includes(existing.siteId)) {
+      return NextResponse.json({ error: "Forbidden: Access denied to this issue" }, { status: 403 });
+    }
+
+    await prisma.issue.delete({ where: { id } });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

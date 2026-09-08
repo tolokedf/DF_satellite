@@ -158,15 +158,25 @@ export default function LogShortStopForm() {
 
     try {
       const startDateTime = new Date(`${date}T${startTime}:00`);
-      const recoveryDateTime = recoveredTime
-        ? new Date(`${date}T${recoveredTime}:00`)
-        : new Date(startDateTime.getTime() + durationMinutes * 60 * 1000);
+      let recoveryDateTime = new Date(startDateTime.getTime() + (durationMinutes || 1) * 60 * 1000);
+      if (recoveredTime) {
+        const potentialRecovery = new Date(`${date}T${recoveredTime}:00`);
+        if (potentialRecovery.getTime() < startDateTime.getTime()) {
+          // Crossed midnight into next day
+          recoveryDateTime = new Date(potentialRecovery.getTime() + 24 * 60 * 60 * 1000);
+        } else {
+          recoveryDateTime = potentialRecovery;
+        }
+      }
+
+      const currentRobot = robots.find((r) => r.id === selectedRobotId);
+      const effectiveSiteId = currentRobot?.siteId || targetSiteId || (currentSiteId !== "ALL" ? currentSiteId : (filteredSitesForCustomer[0]?.id || availableSites[0]?.id));
 
       const res = await fetch("/api/short-stops", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          siteId: targetSiteId || (currentSiteId !== "ALL" ? currentSiteId : (filteredSitesForCustomer[0]?.id || availableSites[0]?.id)),
+          siteId: effectiveSiteId,
           robotId: selectedRobotId,
           category: finalCategory,
           zone,
