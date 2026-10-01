@@ -7,5 +7,5 @@ export default async function AdminDatabasePage() {
   if (!user || user.role !== "ADMIN") {
     redirect("/feed");
   }
-  return <AdminConsole />;
+  return <AdminConsole initialTab="portability" />;
 }

@@ -134,27 +134,51 @@ export async function PATCH(req: Request) {
     const existing = await prisma.robot.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Robot not found" }, { status: 404 });
 
-    if (data.code) {
-      data.code = data.code.toUpperCase().trim();
+    const updateData: any = {};
+    if (data.code !== undefined && data.code.trim()) {
+      const cleanCode = data.code.toUpperCase().trim();
+      const targetSiteId = data.siteId || existing.siteId;
       const dup = await prisma.robot.findFirst({
         where: {
-          siteId: existing.siteId,
-          code: data.code,
+          siteId: targetSiteId,
+          code: cleanCode,
           NOT: { id },
         },
       });
       if (dup) {
         return NextResponse.json(
-          { error: `Robot with code '${data.code}' already exists for this site` },
+          { error: `Robot with code '${cleanCode}' already exists for this site` },
           { status: 409 }
         );
       }
+      updateData.code = cleanCode;
     }
+
+    if (data.siteId !== undefined) {
+      const site = await prisma.site.findUnique({ where: { id: data.siteId } });
+      if (!site) return NextResponse.json({ error: "Site not found" }, { status: 404 });
+      updateData.siteId = data.siteId;
+    }
+    if (data.name !== undefined) updateData.name = data.name ? data.name.trim() : null;
+    if (data.model !== undefined) updateData.model = data.model;
+    if (data.type !== undefined) updateData.type = data.type;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.lineZone !== undefined) updateData.lineZone = data.lineZone ? data.lineZone.trim() : null;
+    if (data.ipAddress !== undefined) updateData.ipAddress = data.ipAddress ? data.ipAddress.trim() : null;
+    if (data.qrPayload !== undefined) updateData.qrPayload = data.qrPayload ? data.qrPayload.trim() : null;
 
     const updated = await prisma.robot.update({
       where: { id },
-      data,
-      include: { site: { include: { company: true } } },
+      data: updateData,
+      include: {
+        site: { include: { company: true } },
+        _count: {
+          select: {
+            shortStops: true,
+            issues: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json(updated);

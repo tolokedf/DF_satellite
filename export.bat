@@ -23,12 +23,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "$dest = Join-Path 'Database\backups' $zipName;" ^
     "Compress-Archive -Path 'Database\data' -DestinationPath $dest -Force;" ^
     "Copy-Item $dest -Destination 'Database\backups\DF_Satellite_DB_latest.zip' -Force;" ^
+    "Copy-Item $dest -Destination 'DF_Satellite_DB_latest.zip' -Force;" ^
     "$size = (Get-Item $dest).Length / 1KB;" ^
     "$hash = (Get-FileHash $dest -Algorithm SHA256).Hash;" ^
     "Write-Host (' ✅ Export Complete! ' + [math]::Round($size, 1) + ' KB');" ^
     "Write-Host (' 🔒 SHA-256 Checksum: ' + $hash);" ^
     "Write-Host (' 💾 Backup Archive:   ' + $dest);" ^
-    "Write-Host (' 📍 Quick USB Copy:   Database\backups\DF_Satellite_DB_latest.zip');"
+    "Write-Host (' 📍 Quick USB Copy:   DF_Satellite_DB_latest.zip');"
 
 if %errorlevel% neq 0 (
     echo.

@@ -50,8 +50,15 @@ export async function GET(req: Request) {
 
     if (fromDate || toDate) {
       where.startTime = {};
-      if (fromDate) where.startTime.gte = new Date(fromDate);
-      if (toDate) where.startTime.lte = new Date(toDate);
+      if (fromDate) {
+        const f = new Date(fromDate);
+        if (!isNaN(f.getTime())) where.startTime.gte = f;
+      }
+      if (toDate) {
+        const tStr = toDate.includes("T") ? toDate : `${toDate}T23:59:59.999Z`;
+        const t = new Date(tStr);
+        if (!isNaN(t.getTime())) where.startTime.lte = t;
+      }
     }
 
     const shortStops = await prisma.shortStopLog.findMany({
@@ -170,18 +177,47 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Access denied to this log" }, { status: 403 });
     }
 
-    if (data.startTime) {
-      data.startTime = new Date(data.startTime);
-      if (isNaN(data.startTime.getTime())) return NextResponse.json({ error: "Invalid startTime" }, { status: 400 });
+    const allowedFields = [
+      "siteId",
+      "robotId",
+      "category",
+      "zone",
+      "specificLocation",
+      "problemSummary",
+      "description",
+      "actionTaken",
+      "photoUrl",
+      "source",
+      "startTime",
+      "recoveryTime",
+      "durationMinutes",
+      "resolvedBy",
+      "recoveryAction",
+      "notes",
+    ];
+
+    const updateData: any = {};
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        updateData[key] = data[key];
+      }
     }
-    if (data.recoveryTime) {
-      data.recoveryTime = new Date(data.recoveryTime);
-      if (isNaN(data.recoveryTime.getTime())) return NextResponse.json({ error: "Invalid recoveryTime" }, { status: 400 });
+
+    if (updateData.startTime) {
+      updateData.startTime = new Date(updateData.startTime);
+      if (isNaN(updateData.startTime.getTime())) return NextResponse.json({ error: "Invalid startTime" }, { status: 400 });
+    }
+    if (updateData.recoveryTime) {
+      updateData.recoveryTime = new Date(updateData.recoveryTime);
+      if (isNaN(updateData.recoveryTime.getTime())) return NextResponse.json({ error: "Invalid recoveryTime" }, { status: 400 });
+    }
+    if (updateData.durationMinutes !== undefined) {
+      updateData.durationMinutes = Math.max(0.1, parseFloat(updateData.durationMinutes) || 1.0);
     }
 
     const updated = await prisma.shortStopLog.update({
       where: { id },
-      data,
+      data: updateData,
       include: { robot: true, site: true },
     });
 

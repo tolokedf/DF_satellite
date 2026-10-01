@@ -18,13 +18,20 @@ import {
   FolderDown
 } from "lucide-react";
 
-export default function AdminConsole() {
+interface AdminConsoleProps {
+  initialTab?: "users" | "sites" | "fleet" | "portability";
+}
+
+export default function AdminConsole({ initialTab = "users" }: AdminConsoleProps) {
   const [users, setUsers] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [robots, setRobots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState<"users" | "sites" | "fleet" | "portability">("users");
+  const [activeSubTab, setActiveSubTab] = useState<"users" | "sites" | "fleet" | "portability">(initialTab);
+  const [dbInfo, setDbInfo] = useState<any>(null);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // New User form state
   const [username, setUsername] = useState("");
@@ -87,6 +94,46 @@ export default function AdminConsole() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchDbInfo = async () => {
+    setDbLoading(true);
+    try {
+      const res = await fetch("/api/admin/database");
+      if (res.ok) {
+        const data = await res.json();
+        setDbInfo(data);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setDbLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSubTab === "portability") {
+      fetchDbInfo();
+    }
+  }, [activeSubTab]);
+
+  const handleExportDb = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/admin/database", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "export" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Export failed");
+      setMessage({ type: "success", text: "Database exported successfully!" });
+      fetchDbInfo();
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleToggleSite = (siteId: string) => {
     setSelectedSiteIds((prev) =>
@@ -887,21 +934,101 @@ export default function AdminConsole() {
         </div>
       )}
 
-      {/* Tab 3: Portability & Separation */}
+      {/* Tab 4: Portability & Separation */}
       {activeSubTab === "portability" && (
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Database className="w-5 h-5 text-purple-600" />
-              Program & Database Separation Architecture
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Your runtime database is completely decoupled from the application code, residing inside{" "}
-              <code>Database/data/satellite.db</code>.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Database className="w-5 h-5 text-purple-600" />
+                Program & Database Separation Architecture
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Your runtime database is completely decoupled from the application code, residing inside{" "}
+                <code className="bg-slate-100 px-1 py-0.5 rounded font-bold text-slate-700">Database/data/satellite.db</code>.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchDbInfo}
+                disabled={dbLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${dbLoading ? "animate-spin" : ""}`} />
+                <span>Refresh Status</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Live Database Health & Stats Card */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Database Status</div>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-sm font-bold text-emerald-700">
+                  {dbInfo?.dbExists ? "Active & Connected" : "Connecting..."}
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1">Mode: <span className="font-semibold text-slate-700 uppercase">{dbInfo?.journalMode || "WAL"}</span></div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Database Size</div>
+              <div className="text-lg font-extrabold text-slate-900 mt-1">{dbInfo?.dbSize || "136 KB"}</div>
+              <div className="text-[11px] text-slate-400 mt-1">SQLite isolated storage</div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Entities</div>
+              <div className="text-lg font-extrabold text-slate-900 mt-1">
+                {(dbInfo?.counts?.users || 0) + (dbInfo?.counts?.robots || 0) + (dbInfo?.counts?.projects || 0)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {dbInfo?.counts?.users || 0} users · {dbInfo?.counts?.robots || 0} robots · {dbInfo?.counts?.projects || 0} projects
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Operational Logs</div>
+              <div className="text-lg font-extrabold text-slate-900 mt-1">
+                {(dbInfo?.counts?.shortStops || 0) + (dbInfo?.counts?.issues || 0)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {dbInfo?.counts?.shortStops || 0} short stops · {dbInfo?.counts?.issues || 0} issues
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions Bar */}
+          <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold text-purple-900">Web-Based Database Backup & Download</div>
+              <p className="text-[11px] text-purple-700 mt-0.5">
+                Download a complete, checkpointed ZIP archive of the operational database directly to your machine.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportDb}
+                disabled={exporting}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-white border border-purple-300 hover:bg-purple-100 rounded-lg transition"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${exporting ? "animate-spin" : ""}`} />
+                <span>{exporting ? "Exporting..." : "Take New Snapshot"}</span>
+              </button>
+              <a
+                href="/api/admin/database?download=1"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm transition"
+              >
+                <FolderDown className="w-3.5 h-3.5" />
+                <span>Download Backup ZIP</span>
+              </a>
+            </div>
+          </div>
+
+          {/* CLI instructions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-3">
               <h3 className="font-bold text-slate-800 flex items-center gap-1.5">
                 <FolderDown className="w-4 h-4 text-blue-600" />
@@ -914,8 +1041,8 @@ export default function AdminConsole() {
                 ./export.sh
               </div>
               <p className="text-slate-500 text-[11px]">
-                This packages all operational records, short stop logs, and user credentials into a single
-                timestamped <code>DF_Satellite_DB_YYYYMMDD_HHMMSS.zip</code> archive with SHA-256 validation.
+                Checkpoints the SQLite WAL journal and packages data into{" "}
+                <code className="text-slate-700 font-semibold">DF_Satellite_DB_latest.zip</code> with SHA-256 validation.
               </p>
             </div>
 
@@ -928,10 +1055,10 @@ export default function AdminConsole() {
                 On the target PC or production server, restore your database instantly:
               </p>
               <div className="bg-slate-900 text-emerald-400 p-2.5 rounded font-mono text-[11px]">
-                ./import.sh Database/backups/DF_Satellite_DB_*.zip
+                ./import.sh DF_Satellite_DB_latest.zip
               </div>
               <p className="text-slate-500 text-[11px]">
-                Safely backs up the pre-existing database before applying the restoration archive.
+                Safely creates a timestamped safety backup of any pre-existing database before applying the restore.
               </p>
             </div>
           </div>

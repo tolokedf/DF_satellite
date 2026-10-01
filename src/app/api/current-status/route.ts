@@ -14,22 +14,25 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const team = searchParams.get("team") || "dfa";
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+  const liveFaUrl = process.env.FA_API_URL || process.env.LIVE_FA_URL;
+  if (liveFaUrl) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
 
-    const res = await fetch(`http://192.168.0.148:8090/api/field?team=${encodeURIComponent(team)}`, {
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    clearTimeout(timeoutId);
+      const res = await fetch(`${liveFaUrl}/api/field?team=${encodeURIComponent(team)}`, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      clearTimeout(timeoutId);
 
-    if (res.ok) {
-      const data = await res.json();
-      return NextResponse.json({ ...data, source: "live_fa" });
+      if (res.ok) {
+        const data = await res.json();
+        return NextResponse.json({ ...data, source: "live_fa" });
+      }
+    } catch (err: any) {
+      console.warn(`Could not reach ${liveFaUrl}, falling back to local database:`, err.message);
     }
-  } catch (err: any) {
-    console.warn("Could not reach 192.168.0.148:8090, falling back to local database:", err.message);
   }
 
   // Fallback: synthesize FA structure from local Prisma database

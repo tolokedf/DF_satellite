@@ -24,15 +24,23 @@ fi
 
 # Ensure SQLite WAL is checkpointed to avoid missing pending journal writes
 if command -v sqlite3 >/dev/null 2>&1 && [ -f "$DB_DIR/satellite.db" ]; then
-  echo " 🔄 Checkpointing SQLite WAL journal..."
+  echo " 🔄 Checkpointing SQLite WAL journal via sqlite3..."
   sqlite3 "$DB_DIR/satellite.db" "PRAGMA wal_checkpoint(TRUNCATE);" 2>/dev/null || true
+elif [ -f "$DB_DIR/satellite.db" ]; then
+  echo " 🔄 Checkpointing SQLite WAL journal via Node..."
+  node -e '
+    const { PrismaClient } = require("@prisma/client");
+    const p = new PrismaClient();
+    p.$queryRawUnsafe("PRAGMA wal_checkpoint(TRUNCATE);").then(() => p.$disconnect()).catch(() => {});
+  ' 2>/dev/null || true
 fi
 
 # Package Database/data into zip
 (cd "$BASE_DIR/Database" && zip -r "$DEST_FILE" data -x "*.gitkeep" -x "*.wal" -x "*.shm" -x "*.bak*")
 
-# Keep DF_Satellite_DB_latest.zip in backups folder
+# Keep DF_Satellite_DB_latest.zip in backups folder AND root folder
 cp -f "$DEST_FILE" "$BACKUP_DIR/DF_Satellite_DB_latest.zip"
+cp -f "$DEST_FILE" "$BASE_DIR/DF_Satellite_DB_latest.zip"
 
 CHECKSUM=$(sha256sum "$DEST_FILE" | awk '{print $1}')
 FILE_SIZE=$(du -h "$DEST_FILE" | awk '{print $1}')

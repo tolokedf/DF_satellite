@@ -155,17 +155,46 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Access denied to this issue" }, { status: 403 });
     }
 
+    const updateData: any = {};
+    if (typeof data.title === "string") updateData.title = data.title.trim();
+    if (data.description !== undefined) updateData.description = data.description ? data.description.trim() : null;
+    if (data.severity !== undefined) updateData.severity = data.severity;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.rootCauseCategory !== undefined) updateData.rootCauseCategory = data.rootCauseCategory;
+    if (data.fiveWhyAnalysis !== undefined) updateData.fiveWhyAnalysis = data.fiveWhyAnalysis ? data.fiveWhyAnalysis.trim() : null;
+    if (data.immediateAction !== undefined) updateData.immediateAction = data.immediateAction ? data.immediateAction.trim() : null;
+    if (data.permanentCountermeasure !== undefined) updateData.permanentCountermeasure = data.permanentCountermeasure ? data.permanentCountermeasure.trim() : null;
+    if (data.assignedTo !== undefined) updateData.assignedTo = data.assignedTo ? data.assignedTo.trim() : null;
+    if (data.robotId !== undefined) updateData.robotId = data.robotId || null;
+    if (data.projectId !== undefined) updateData.projectId = data.projectId || null;
+    if (data.siteId !== undefined) {
+      if (user.role === "CUSTOMER" && !user.assignedSiteIds.includes(data.siteId)) {
+        return NextResponse.json({ error: "Forbidden: Cannot reassign to this site" }, { status: 403 });
+      }
+      updateData.siteId = data.siteId;
+    }
+
+    if (updateData.robotId) {
+      const targetSiteId = updateData.siteId || existing.siteId;
+      const robot = await prisma.robot.findUnique({ where: { id: updateData.robotId } });
+      if (!robot || robot.siteId !== targetSiteId) {
+        return NextResponse.json({ error: "Robot does not belong to the specified site" }, { status: 400 });
+      }
+    }
+
     // Closed timestamp management
-    if (data.status === "CLOSED" && !data.closedAt) {
-      data.closedAt = new Date();
-    } else if (data.status && data.status !== "CLOSED") {
-      data.closedAt = null;
+    if (updateData.status === "CLOSED" && !data.closedAt) {
+      updateData.closedAt = new Date();
+    } else if (updateData.status && updateData.status !== "CLOSED") {
+      updateData.closedAt = null;
+    } else if (data.closedAt !== undefined) {
+      updateData.closedAt = data.closedAt ? new Date(data.closedAt) : null;
     }
 
     const updated = await prisma.issue.update({
       where: { id },
-      data,
-      include: { robot: true, site: true },
+      data: updateData,
+      include: { robot: true, site: true, project: true },
     });
 
     return NextResponse.json(updated);

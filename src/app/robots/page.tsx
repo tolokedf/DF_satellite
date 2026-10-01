@@ -50,10 +50,12 @@ export default function GlobalRobotsPage() {
                 <td className="py-3 px-3">
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                      r.status === "RUNNING"
+                      r.status === "RUNNING" || r.status === "ONLINE"
                         ? "bg-emerald-100 text-emerald-800"
-                        : r.status === "SHORT_STOP"
+                        : r.status === "SHORT_STOP" || r.status === "ERROR" || r.status === "OFFLINE"
                         ? "bg-rose-100 text-rose-800"
+                        : r.status === "CHARGING"
+                        ? "bg-blue-100 text-blue-800"
                         : "bg-amber-100 text-amber-800"
                     }`}
                   >

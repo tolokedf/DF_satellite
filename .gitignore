@@ -1,41 +1,46 @@
 # Dependencies
-node_modules/
+/node_modules
 /.pnp
 .pnp.js
 
-# Next.js build
-.next/
-out/
-build/
-dist/
+# Testing
+/coverage
 
-# Database & Runtime Data Isolation (Mandatory)
-Database/data/*
-!Database/data/.gitkeep
-Database/backups/*
-!Database/backups/.gitkeep
-*.db
-*.db-*
-*.db.pre_*
-*.db.bak_*
-*.sqlite
-*.sqlite3
-*.zip
-*.tar.gz
-*.bak
+# Next.js
+/.next/
+/out/
 
-# Environment & Logs
-.env
-.env*.local
-!.env.example
-*.log
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# OS / Editor
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+# Local Env Files
+.env*.local
+.env
+
+# TypeScript
 *.tsbuildinfo
+next-env.d.ts
+
+# Isolated Database Data & Backups (Program & Database Separation)
+Database/data/*
+!Database/data/.gitkeep
+Database/backups/*
+!Database/backups/.gitkeep
+DF_Satellite_DB_*.zip
+DF_Satellite_DB_latest.zip
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.bak*
+*.log
+.server.log

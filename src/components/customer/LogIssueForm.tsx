@@ -46,16 +46,32 @@ export default function LogIssueForm({ initialSiteId, onSuccess }: LogIssueFormP
   }, [currentCustomerId, currentSiteId]);
 
   useEffect(() => {
-    if (!selectedSiteId) return;
+    if (!selectedSiteId) {
+      setRobots([]);
+      setSelectedRobotId("");
+      return;
+    }
     fetch(`/api/robots?siteId=${selectedSiteId}`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
           setRobots(data);
-          if (data.length > 0) setSelectedRobotId(data[0].id);
+          // If current selectedRobotId is not in the new robot list, reset it
+          setSelectedRobotId((prev) => {
+            if (prev && data.some((r: any) => r.id === prev)) {
+              return prev;
+            }
+            return data.length > 0 ? data[0].id : "";
+          });
+        } else {
+          setRobots([]);
+          setSelectedRobotId("");
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setRobots([]);
+        setSelectedRobotId("");
+      });
   }, [selectedSiteId]);
 
   const handleSubmit = async (e: React.FormEvent) => {

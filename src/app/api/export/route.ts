@@ -14,6 +14,16 @@ function safeFormat(date: any, fmt: string, fallback: string = "-"): string {
   }
 }
 
+function escapeHtml(str: any): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function GET(req: Request) {
   try {
     const user = await getSessionUser();
@@ -66,7 +76,7 @@ export async function GET(req: Request) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${project.code} - ${project.name} | Field Deployment Report</title>
+  <title>${escapeHtml(project.code)} - ${escapeHtml(project.name)} | Field Deployment Report</title>
   <style>
     @page { size: A4; margin: 15mm 15mm 15mm 15mm; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.4; font-size: 11pt; padding: 20px; }
@@ -117,26 +127,26 @@ export async function GET(req: Request) {
   <div class="header">
     <div class="brand">DF <span>SATELLITE</span> <small style="font-size: 10pt; color: #64748b; font-weight: normal;">| Field Robotics Operations</small></div>
     <div class="doc-meta">
-      <div><strong>Report Code:</strong> ${project.code}</div>
+      <div><strong>Report Code:</strong> ${escapeHtml(project.code)}</div>
       <div><strong>Generated:</strong> ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
     </div>
   </div>
 
   <div class="title-box">
-    <h1>${project.name}</h1>
-    <div>${project.description || "Field deployment and robotic commissioning management."}</div>
+    <h1>${escapeHtml(project.name)}</h1>
+    <div>${escapeHtml(project.description || "Field deployment and robotic commissioning management.")}</div>
     <div class="grid-info">
       <div>
         <div class="label">Customer / Client</div>
-        <div class="val">${project.company?.name || "General / Internal"}</div>
+        <div class="val">${escapeHtml(project.company?.name || "General / Internal")}</div>
       </div>
       <div>
         <div class="label">Deployment Site</div>
-        <div class="val">${project.site?.name || "No Site Assigned"}</div>
+        <div class="val">${escapeHtml(project.site?.name || "No Site Assigned")}</div>
       </div>
       <div>
         <div class="label">Lead Engineer</div>
-        <div class="val">${project.leadEngineer}</div>
+        <div class="val">${escapeHtml(project.leadEngineer)}</div>
       </div>
       <div>
         <div class="label">Target Go-Live</div>
@@ -165,22 +175,22 @@ export async function GET(req: Request) {
     <tbody>
       ${project.actionItems.map(item => `
         <tr>
-          <td><strong>${item.itemNo}</strong></td>
+          <td><strong>${escapeHtml(item.itemNo)}</strong></td>
           <td>
-            <div><strong>${item.title}</strong></div>
-            ${item.notes ? `<div style="font-size: 8pt; color: #64748b; margin-top: 4px;">Update: ${item.notes}</div>` : ""}
+            <div><strong>${escapeHtml(item.title)}</strong></div>
+            ${item.notes ? `<div style="font-size: 8pt; color: #64748b; margin-top: 4px;">Update: ${escapeHtml(item.notes)}</div>` : ""}
           </td>
-          <td><span class="badge badge-low">${item.category}</span></td>
-          <td>${item.owner}</td>
+          <td><span class="badge badge-low">${escapeHtml(item.category)}</span></td>
+          <td>${escapeHtml(item.owner)}</td>
           <td>
             <span class="badge ${item.priority === 'CRITICAL' ? 'badge-crit' : item.priority === 'HIGH' ? 'badge-high' : 'badge-med'}">
-              ${item.priority}
+              ${escapeHtml(item.priority)}
             </span>
           </td>
           <td>${safeFormat(item.targetDate, "dd/MM/yyyy", "-")}</td>
           <td>
             <span class="badge ${item.status === 'DONE' ? 'badge-done' : item.status === 'IN_PROGRESS' ? 'badge-prog' : 'badge-open'}">
-              ${item.status}
+              ${escapeHtml(item.status)}
             </span>
           </td>
         </tr>
@@ -207,25 +217,25 @@ export async function GET(req: Request) {
     <tbody>
       ${project.issues.map(iss => `
         <tr>
-          <td><strong>${iss.issueNo}</strong></td>
-          <td><strong>${iss.robot?.code || "Site"}</strong></td>
+          <td><strong>${escapeHtml(iss.issueNo)}</strong></td>
+          <td><strong>${escapeHtml(iss.robot?.code || "Site")}</strong></td>
           <td>
-            <div><strong>${iss.title}</strong></div>
-            ${iss.description ? `<div style="font-size: 8pt; color: #475569; margin-top: 2px;">${iss.description}</div>` : ""}
-            ${iss.fiveWhyAnalysis ? `<div style="font-size: 8pt; color: #0284c7; background: #f0f9ff; padding: 4px; border-radius: 4px; margin-top: 4px;"><strong>RCA / 5-Why:</strong> ${iss.fiveWhyAnalysis}</div>` : ""}
+            <div><strong>${escapeHtml(iss.title)}</strong></div>
+            ${iss.description ? `<div style="font-size: 8pt; color: #475569; margin-top: 2px;">${escapeHtml(iss.description)}</div>` : ""}
+            ${iss.fiveWhyAnalysis ? `<div style="font-size: 8pt; color: #0284c7; background: #f0f9ff; padding: 4px; border-radius: 4px; margin-top: 4px;"><strong>RCA / 5-Why:</strong> ${escapeHtml(iss.fiveWhyAnalysis)}</div>` : ""}
           </td>
           <td>
-            ${iss.immediateAction ? `<div style="font-size: 8pt;"><strong>Immediate:</strong> ${iss.immediateAction}</div>` : ""}
-            ${iss.permanentCountermeasure ? `<div style="font-size: 8pt; color: #15803d; margin-top: 2px;"><strong>Permanent:</strong> ${iss.permanentCountermeasure}</div>` : ""}
+            ${iss.immediateAction ? `<div style="font-size: 8pt;"><strong>Immediate:</strong> ${escapeHtml(iss.immediateAction)}</div>` : ""}
+            ${iss.permanentCountermeasure ? `<div style="font-size: 8pt; color: #15803d; margin-top: 2px;"><strong>Permanent:</strong> ${escapeHtml(iss.permanentCountermeasure)}</div>` : ""}
           </td>
           <td>
             <span class="badge ${iss.severity === 'CRITICAL' ? 'badge-crit' : iss.severity === 'MAJOR' ? 'badge-high' : 'badge-med'}">
-              ${iss.severity}
+              ${escapeHtml(iss.severity)}
             </span>
           </td>
           <td>
             <span class="badge ${iss.status === 'CLOSED' ? 'badge-done' : 'badge-prog'}">
-              ${iss.status}
+              ${escapeHtml(iss.status)}
             </span>
           </td>
         </tr>
@@ -253,11 +263,11 @@ export async function GET(req: Request) {
       ${shortStops.map(stop => `
         <tr>
           <td>${safeFormat(stop.startTime, "dd/MM/yyyy HH:mm", "-")}</td>
-          <td><strong>${stop.robot?.code || "Site"}</strong></td>
-          <td><strong>${stop.category}</strong></td>
-          <td>${stop.specificLocation || stop.zone || "-"}</td>
-          <td>${stop.durationMinutes} min</td>
-          <td>${stop.recoveryAction || stop.resolvedBy || "Auto Reset"}</td>
+          <td><strong>${escapeHtml(stop.robot?.code || "Site")}</strong></td>
+          <td><strong>${escapeHtml(stop.category)}</strong></td>
+          <td>${escapeHtml(stop.specificLocation || stop.zone || "-")}</td>
+          <td>${escapeHtml(stop.durationMinutes)} min</td>
+          <td>${escapeHtml(stop.recoveryAction || stop.resolvedBy || "Auto Reset")}</td>
         </tr>
       `).join("")}
     </tbody>
@@ -269,19 +279,19 @@ export async function GET(req: Request) {
   </div>
   ${project.dailyReports.length > 0 ? `
     <div style="margin-bottom: 12px; font-size: 9.5pt;">
-      <strong>Latest Daily Field Activity (${safeFormat(project.dailyReports[0].reportDate, "dd/MM/yyyy", "-")} - ${project.dailyReports[0].engineerName}):</strong>
-      <pre style="white-space: pre-wrap; font-family: inherit; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 4px; margin-top: 6px;">${project.dailyReports[0].activitiesDone}</pre>
+      <strong>Latest Daily Field Activity (${safeFormat(project.dailyReports[0].reportDate, "dd/MM/yyyy", "-")} - ${escapeHtml(project.dailyReports[0].engineerName)}):</strong>
+      <pre style="white-space: pre-wrap; font-family: inherit; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 4px; margin-top: 6px;">${escapeHtml(project.dailyReports[0].activitiesDone)}</pre>
     </div>
   ` : ""}
 
   <div style="margin-top: 40px; padding-top: 15px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; font-size: 9pt;">
     <div>
       <div><strong>DF Automation & Robotics Sdn Bhd</strong></div>
-      <div>Prepared by: ${project.leadEngineer}</div>
+      <div>Prepared by: ${escapeHtml(project.leadEngineer)}</div>
       <div style="margin-top: 30px;">Signature: __________________________</div>
     </div>
     <div>
-      <div><strong>Customer Acknowledged (${project.company?.name || "General"})</strong></div>
+      <div><strong>Customer Acknowledged (${escapeHtml(project.company?.name || "General")})</strong></div>
       <div>Site Operations Representative</div>
       <div style="margin-top: 30px;">Signature: __________________________</div>
     </div>
